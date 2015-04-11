@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">Well-Being</string>
+    <string name="title_activity_start_screen">Well-Being</string>
+
+    <string name="action_settings">Settings</string>
+    <string name="title_activity_survey">Well-Being Survey</string>
+    <string name="title_activity_user_dialog">Well-Being</string>
+    <string name="title_activity_finish_screen">Survey Finished</string>
+    <string name="next">Next</string>
+    <string name="back">Back</string>
+    <string name="submit">Submit</string>
+    <string name="okay">OK</string>
+    <string name="progress">#/# Questions Completed</string>
+    <string name="survey_name">Survey</string>
+    <string name="survey_time">Time</string>
+    <string name="finish">Thank you for your responses</string>
+    <string name="Checkmark">Checkmark</string>
+    <string name="prev_started">previously_started</string>
+</resources>

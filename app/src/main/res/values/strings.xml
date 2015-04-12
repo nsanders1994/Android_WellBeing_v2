@@ -16,4 +16,6 @@
     <string name="finish">Thank you for your responses</string>
     <string name="Checkmark">Checkmark</string>
     <string name="prev_started">previously_started</string>
+    <string name="user_email">user_email</string>
+    <string name="emailStored">emailStored</string>
 </resources>

@@ -64,11 +64,17 @@ public class UpdateService extends IntentService {
                 if (e == null) {
                     for (int i = 0; i < all_surveys.size(); i++) {
                         final int survey_id = i;
+
                         ParseObject survey_listing = all_surveys.get(i);
+                        boolean active = survey_listing.getBoolean("Active");
+
+                        if(!active) continue; // If the current survey is not active skip to the next survey
+
                         final String name = survey_listing.getString("SurveyName");
                         final List<Object> time = survey_listing.getList("SurveyTime");
                         final int duration = survey_listing.getInt("SurveyDuration");
                         final String table_name = survey_listing.getString("SurveyTableName");
+                        final int surveyVersion    = survey_listing.getInt("Version");
 
                         // Get list of questions and their answers
                         ParseQuery<ParseObject> query2 = new ParseQuery<ParseObject>(table_name);
@@ -83,10 +89,12 @@ public class UpdateService extends IntentService {
 
                                     for (int j = 0; j < ques_ct; j++) {
                                         ParseObject curr_ques = survey.get(j);
-                                        type.add(curr_ques.getString("QuestionType"));
-                                        ques.add(curr_ques.getString("Question"));
-                                        ans.add(j, Utilities.join(curr_ques.getList("AnswerArray"), "%%"));
-                                        ansVals.add(Utilities.join(curr_ques.getList("AnswerValues"), "%%"));
+                                        int qID = curr_ques.getInt("questionId") - 1;
+
+                                        type.set(qID, curr_ques.getString("QuestionType"));
+                                        ques.set(qID, curr_ques.getString("Question"));
+                                        ans.set (qID, Utilities.join(curr_ques.getList("AnswerArray"), "%%"));
+                                        ansVals.set(qID, Utilities.join(curr_ques.getList("AnswerVals"), "%%"));
                                     }
 
                                     String ques_str = Utilities.join(ques, "%%");
@@ -142,7 +150,8 @@ public class UpdateService extends IntentService {
                                             ques_str,
                                             ans_str,
                                             type_str,
-                                            ansVal_str
+                                            ansVal_str,
+                                            surveyVersion
                                     );
                                 }
                             }

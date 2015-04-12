@@ -30,7 +30,7 @@ public class PopupService extends IntentService {
         // If the user is not making a phone call, create a pop-up alert dialog
         AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         if(audioManager.getMode() != AudioManager.MODE_IN_CALL) {
-            Intent i = new Intent(PopupService.this, UserDialog.class);
+            Intent i = new Intent(PopupService.this, ReminderDialog.class);
             i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             i.putExtra("ID", ID);
             i.putExtra("ITERATION", iteration);

@@ -15,6 +15,7 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 /*
  * Created by Natalie on 2/16/2015.
@@ -31,8 +32,8 @@ public class SurveyScreen extends Activity {
     private List<List<String>>  ans_str_lists;
     private List<List<Integer>> ans_val_lists;
     private List<String>        ques_types;
-    private long []             tstamps;
-    private int  []             ansrs;
+    private List<Long>          tstamps;
+    private List<Integer>       ansrs;
     private int                 ques_ct;
     private int  []             ans_cts;
     private int                 ques_answered_ct  = 0;
@@ -68,15 +69,17 @@ public class SurveyScreen extends Activity {
         }
 
         // Initialize answer and time-stamp output lists
-        ansrs   = new int[ques_ct];
+        ansrs = dbHandler.getUserAns(ID);
+        /*ansrs = new ArrayList<Integer>(ques_ct); //= new int[ques_ct];
 
         List<Integer> stored_ansrs = dbHandler.getUserAns(ID);
         int ct = stored_ansrs.size();
         for(int j = 0; j < ct; j++){
             ansrs[j] = stored_ansrs.get(j);
-        }
+        }*/
 
-        tstamps = new long[ques_ct];
+        //tstamps = new long[ques_ct];
+        tstamps = dbHandler.getTStamps(ID);
 
 
         // On the event of the user clicking 'next'
@@ -87,8 +90,25 @@ public class SurveyScreen extends Activity {
                 {
                     Intent intent = new Intent(SurveyScreen.this, FinishScreen.class);
                     updateAnsweredCount();
-                    intent.putExtra("ANS", ansrs);
-                    intent.putExtra("TSTAMP", tstamps);
+
+                    // Convert to object list in order to join by delimiter
+                    List<Object> temp1 = new ArrayList<Object>();
+                    List<Object> temp2 = new ArrayList<Object>();
+
+                    temp1.addAll(ansrs);
+                    temp2.addAll(tstamps);
+
+                    // Store answers and timestamps
+                    dbHandler.storeAnswers(Utilities.join(temp1, ","), ID);
+                    dbHandler.storeTStamps(Utilities.join(temp2, ","), ID);
+
+                    /*
+                    Integer[] temp = new Integer[ques_ct];
+                    ansrs.toArray(temp);
+
+                    intent.putExtra("ANS", ansrs.toArray());
+                    Log.i("DEBUG>>>>>", "In Survey, ans = " + temp);
+                    intent.putExtra("TSTAMP", temp);*/
                     intent.putExtra("CT", ques_answered_ct);
                     intent.putExtra("ID", ID);
 
@@ -110,9 +130,17 @@ public class SurveyScreen extends Activity {
             @Override
             public void onClick(View view) {
                 if(qNo - 1 == -1) {
-                    List<Object> temp = new ArrayList<Object>();
-                    temp.addAll(Arrays.asList(ansrs));
-                    dbHandler.storeAnswers(Utilities.join(temp, ","), ID);
+                    // Convert to object list in order to join by delimiter
+                    List<Object> temp1 = new ArrayList<Object>();
+                    List<Object> temp2 = new ArrayList<Object>();
+
+                    temp1.addAll(ansrs);
+                    temp2.addAll(tstamps);
+
+                    // Store answers and timestamps
+                    dbHandler.storeAnswers(Utilities.join(temp1, ","), ID);
+                    dbHandler.storeTStamps(Utilities.join(temp2, ","), ID);
+
                     Intent intent = new Intent(SurveyScreen.this, StartScreen.class);
                     startActivityForResult(intent, 2);
                 }
@@ -207,19 +235,19 @@ public class SurveyScreen extends Activity {
                         view.setBackgroundColor(getResources().getColor(android.R.color.holo_green_dark));
 
                         // If the answer changed, update time stamp
-                        if (ansrs[qNo] != curr_row) {
+                        if (ansrs.get(qNo) != curr_row) {
                             setTstamp(qNo);
                         };
 
                         // Record Answer
-                        ansrs[qNo] = ans_val_lists.get(qNo).get(curr_row);
+                        ansrs.set(qNo, ans_val_lists.get(qNo).get(curr_row));
                     }
                 });
             }
 
             // Show answer selected previously;
-            if(ansrs[qNo] != 0) {
-                int ans = ansrs[qNo];
+            if(ansrs.get(qNo) != 0) {
+                int ans = ansrs.get(qNo);
                 ansRows.get(ans - 1).setBackgroundColor(getResources().getColor(android.R.color.holo_green_dark));
             }
         }
@@ -266,7 +294,7 @@ public class SurveyScreen extends Activity {
                     Log.i("DEBUG>>>>>>", "ans_cts[" + String.valueOf(i) + "] = " + String.valueOf(ans_cts[i]));
 
                     // Initialize TextView
-                    int index = ans_val_lists.get(qNo).indexOf(ansrs[i]); // get index of user's answer in answer list
+                    int index = ans_val_lists.get(qNo).indexOf(ansrs.get(i)); // get index of user's answer in answer list
 
                     if(index != -1) {
                         sliders.get(sliderCt).incrementProgressBy(index + 1); // set progress of slider to user's answer
@@ -289,7 +317,7 @@ public class SurveyScreen extends Activity {
 
                             if(j != 0 ) {
                                 sliderAns.get(sliderOffset).setText(ans_str_lists.get(topQues + sliderOffset).get(j - 1));
-                                ansrs[topQues + sliderOffset] = ans_val_lists.get(topQues + sliderOffset).get(j - 1);
+                                ansrs.set(topQues + sliderOffset, ans_val_lists.get(topQues + sliderOffset).get(j - 1));
                             }
                             else {
                                 sliderAns.get(sliderOffset).setText("");
@@ -323,7 +351,7 @@ public class SurveyScreen extends Activity {
     public void updateAnsweredCount() {
         int cnt = 0;
         for(int i = 0; i < ques_ct; i++) {
-            if(ansrs[i] != 0) {
+            if(ansrs.get(i) != 0) {
                 cnt++;
             }
         }
@@ -333,8 +361,8 @@ public class SurveyScreen extends Activity {
     public void setTstamp(int num) {
         Log.i("DEBUG>>>>>>>>>>>", "qNo is " + String.valueOf(qNo));
 
-        if(ansrs[num] != 0) {
-            tstamps[num] = System.currentTimeMillis() / 1000L;
+        if(ansrs.get(num) != 0) {
+            tstamps.set(num, System.currentTimeMillis() / 1000L);
         }
     }
 
@@ -343,9 +371,13 @@ public class SurveyScreen extends Activity {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (requestCode == 3 && data != null) {
+
             // Get answer and timestamp array previously passed to Finish activity
-            ansrs = data.getIntArrayExtra("ANS");
-            tstamps = data.getLongArrayExtra("TSTAMP");
+            SurveyDatabaseHandler dbHandler = new SurveyDatabaseHandler(getApplicationContext());
+
+            ID = data.getIntExtra("ID", 1);
+            ansrs = dbHandler.getUserAns(ID);
+            tstamps = dbHandler.getTStamps(ID);
 
             qNo = ques_ct - 1;
 

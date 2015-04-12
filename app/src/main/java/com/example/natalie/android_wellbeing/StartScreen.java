@@ -41,119 +41,13 @@ public class StartScreen extends Activity {
 
         // If app was just installed get all surveys from Parse and store in database
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-        boolean previouslyStarted = prefs.getBoolean(getString(R.string.prev_started), false);
-        if(!previouslyStarted) {
+        boolean emailStored = prefs.getBoolean(getString(R.string.emailStored), false);
 
-            final ParseQuery<ParseObject> query = new ParseQuery<ParseObject>("SurveySummary");
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    query.findInBackground(new FindCallback<ParseObject>() {
-                        public void done(List<ParseObject> all_surveys, ParseException e) {
-                            if (e == null) {
-                                for (int i = 0; i < all_surveys.size(); i++) {
-                                    final int survey_id = i;
-
-                                    ParseObject survey_listing = all_surveys.get(i);
-                                    final String name          = survey_listing.getString("SurveyName");
-                                    final List<Object> time    = survey_listing.getList("SurveyTime");
-                                    final int duration         = survey_listing.getInt("SurveyDuration");
-                                    final String table_name    = survey_listing.getString("SurveyTableName");
-
-                                    // Get list of questions and their answers
-                                    ParseQuery<ParseObject> query2 = new ParseQuery<ParseObject>(table_name);
-                                    query2.findInBackground(new FindCallback<ParseObject>() {
-                                        public void done(List<ParseObject> survey, ParseException e) {
-                                            if (e == null) {
-                                                int ques_ct = survey.size();
-                                                List<Object> ques = new ArrayList<>();
-                                                List<Object> ans = new ArrayList<>();
-                                                List<Object> type = new ArrayList<>();
-                                                List<Object> ansVals = new ArrayList<>();
-
-                                                for (int j = 0; j < ques_ct; j++) {
-                                                    ParseObject curr_ques = survey.get(j);
-                                                    type.add(curr_ques.getString("QuestionType"));
-                                                    ques.add(curr_ques.getString("Question"));
-                                                    ans.add(j, Utilities.join(curr_ques.getList("AnswerArray"), "%%"));
-                                                    ansVals.add(Utilities.join(curr_ques.getList("AnswerVals"), "%%"));
-                                                }
-
-                                                String ques_str = Utilities.join(ques, "%%");
-                                                String type_str = Utilities.join(type, "%%");
-                                                String ans_str = Utilities.join(ans, "%nxt%");
-                                                String ansVal_str = Utilities.join(ansVals, "%nxt%");
-
-                                                for(int j = 0; j < time.size(); j++) {
-                                                    int hr  = Integer.parseInt(String.valueOf(time.get(j)).split(":")[0]);
-                                                    int min = Integer.parseInt(String.valueOf(time.get(j)).split(":")[1]);
-
-                                                    AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-
-                                                    Calendar cal = Calendar.getInstance();
-                                                    cal.set(Calendar.HOUR_OF_DAY, hr);
-                                                    cal.set(Calendar.MINUTE, min);
-                                                    cal.set(Calendar.SECOND, 0);
-
-                                                    Intent intent = new Intent(getApplicationContext(), PopupService.class);
-                                                    intent.putExtra("ID", survey_id);
-                                                    intent.putExtra("ITERATION", j);
-
-                                                    PendingIntent pendingIntent = PendingIntent.getService(
-                                                            getApplicationContext(),
-                                                            Integer.parseInt(String.valueOf(survey_id) + String.valueOf(j)),
-                                                            intent,
-                                                            PendingIntent.FLAG_CANCEL_CURRENT);
-
-                                                    for(int i = 0; i < 4; i++){
-                                                        // Get alarm time
-                                                        int curr_hr = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
-                                                        int curr_min = Calendar.getInstance().get(Calendar.MINUTE);
-
-                                                        // If it's after the alarm time, schedule for next day
-                                                        if ( curr_hr > hr || curr_hr == cal.get(Calendar.HOUR_OF_DAY)
-                                                                && curr_min > cal.get(Calendar.MINUTE)) {
-                                                            cal.add(Calendar.DAY_OF_YEAR, 1); // add, not set!
-                                                        }
-
-                                                        // Set alarm for survey pop-up to go off at default of 8:00 AM
-                                                        alarmManager.setRepeating(
-                                                                AlarmManager.RTC_WAKEUP,
-                                                                cal.getTimeInMillis(),
-                                                                alarmManager.INTERVAL_DAY,
-                                                                pendingIntent);
-
-                                                        cal.add(Calendar.MINUTE, duration/4);
-                                                    }
-                                                }
-
-
-                                                dbHandler.createSurvey(
-                                                        Utilities.join(time, ","),
-                                                        duration,
-                                                        name,
-                                                        ques_str,
-                                                        ans_str,
-                                                        type_str,
-                                                        ansVal_str
-                                                );
-                                            }
-                                        }
-                                    });
-
-                                }
-                                SharedPreferences.Editor edit = prefs.edit();
-                                edit.putBoolean(getString(R.string.prev_started), Boolean.TRUE);
-                                edit.commit();
-                            }
-                            else {
-                                Log.i("Updates", "Parse initial survey request failed");
-                            }
-                        }
-                    });
-                }
-            });
+        if(!emailStored) {
+            Intent intent = new Intent(StartScreen.this, EmailDialog.class);
+            startActivity(intent);
         }
+
 
         // Set start view
         setContentView(R.layout.activity_start_screen);
@@ -170,60 +64,66 @@ public class StartScreen extends Activity {
 
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
-            int curr_id = survey_ids.get(position);
 
-            List<String> times = dbHandler.getTimes(curr_id);
-            int timeCt = times.size();
-
-            for(int i = 0; i < timeCt; i++) {
-                // Calculate survey start time
-                Calendar calendar_init0 = Calendar.getInstance();
-                calendar_init0.set(Calendar.HOUR_OF_DAY, 0);
-                calendar_init0.set(Calendar.MINUTE, 0);
-
-                int militaryHr0 = Integer.parseInt(times.get(i).split(":")[0]);
-                int min0 = Integer.parseInt(times.get(i).split(":")[1]);
-
-                Calendar calendar0 = calendar_init0;
-                calendar0.add(Calendar.HOUR_OF_DAY, militaryHr0);
-                calendar0.add(Calendar.MINUTE, min0);
-
-                int hr0 = calendar0.get(Calendar.HOUR) == 0 ? 12 : calendar0.get(Calendar.HOUR);
-                String zone0 = (calendar0.get(Calendar.AM_PM) == Calendar.AM) ? "AM" : "PM";
-                String t0 = String.valueOf(hr0) + ":" +
-                        ("00" + min0).substring(String.valueOf(min0).length()) + " " +
-                        zone0;
-
-                // Calculate survey closing time
-                int duration = dbHandler.getDuration(curr_id);
-
-                Calendar calendar_init1 = Calendar.getInstance();
-                calendar_init1.set(Calendar.HOUR_OF_DAY, 0);
-                calendar_init1.set(Calendar.MINUTE, 0);
-
-                Calendar calendar1 = calendar_init1;
-                calendar1.add(Calendar.HOUR_OF_DAY, militaryHr0);
-                calendar1.add(Calendar.MINUTE, min0 + duration);
-
-                // Set clickable/unclickable
-                boolean completed = dbHandler.isCompleted(curr_id);
-                Calendar curr_calendar = Calendar.getInstance();
-                Intent intent;
-
-                Log.i("DEBUG>>>>> ","Completed = " + (completed ? "True" : "False"));
-                if ( completed ||
-                     curr_calendar.getTimeInMillis() < calendar0.getTimeInMillis() ||
-                     curr_calendar.getTimeInMillis() > calendar1.getTimeInMillis()) {
-                    int hr = curr_calendar.get(Calendar.HOUR);
-                    int min = curr_calendar.get(Calendar.MINUTE);
-                    Log.i("DEBUG>>>>>","Unavailable at " + String.valueOf(hr) + ":" + String.valueOf(min));
+                if(survey_ids.size() == 0) {
+                    survey_ids = dbHandler.getSurveyIDs();
                 }
-                else {
-                    intent = new Intent(StartScreen.this, SurveyScreen.class);
-                    intent.putExtra("ID", survey_ids.get(position));
-                    startActivity(intent);
+
+                Log.i("DEBUG>>>>", "# of surveys = " + String.valueOf(survey_ids.size()) );
+                int curr_id = survey_ids.get(position);
+
+                List<String> times = dbHandler.getTimes(curr_id);
+                int timeCt = times.size();
+
+                for(int i = 0; i < timeCt; i++) {
+                    // Calculate survey start time
+                    Calendar calendar_init0 = Calendar.getInstance();
+                    calendar_init0.set(Calendar.HOUR_OF_DAY, 0);
+                    calendar_init0.set(Calendar.MINUTE, 0);
+
+                    int militaryHr0 = Integer.parseInt(times.get(i).split(":")[0]);
+                    int min0 = Integer.parseInt(times.get(i).split(":")[1]);
+
+                    Calendar calendar0 = calendar_init0;
+                    calendar0.add(Calendar.HOUR_OF_DAY, militaryHr0);
+                    calendar0.add(Calendar.MINUTE, min0);
+
+                    int hr0 = calendar0.get(Calendar.HOUR) == 0 ? 12 : calendar0.get(Calendar.HOUR);
+                    String zone0 = (calendar0.get(Calendar.AM_PM) == Calendar.AM) ? "AM" : "PM";
+                    String t0 = String.valueOf(hr0) + ":" +
+                            ("00" + min0).substring(String.valueOf(min0).length()) + " " +
+                            zone0;
+
+                    // Calculate survey closing time
+                    int duration = dbHandler.getDuration(curr_id);
+
+                    Calendar calendar_init1 = Calendar.getInstance();
+                    calendar_init1.set(Calendar.HOUR_OF_DAY, 0);
+                    calendar_init1.set(Calendar.MINUTE, 0);
+
+                    Calendar calendar1 = calendar_init1;
+                    calendar1.add(Calendar.HOUR_OF_DAY, militaryHr0);
+                    calendar1.add(Calendar.MINUTE, min0 + duration);
+
+                    // Set clickable/unclickable
+                    boolean completed = dbHandler.isCompleted(curr_id);
+                    Calendar curr_calendar = Calendar.getInstance();
+                    Intent intent;
+
+                    Log.i("DEBUG>>>>> ","Completed = " + (completed ? "True" : "False"));
+                    if ( completed ||
+                         curr_calendar.getTimeInMillis() < calendar0.getTimeInMillis() ||
+                         curr_calendar.getTimeInMillis() > calendar1.getTimeInMillis()) {
+                        int hr = curr_calendar.get(Calendar.HOUR);
+                        int min = curr_calendar.get(Calendar.MINUTE);
+                        Log.i("DEBUG>>>>>","Unavailable at " + String.valueOf(hr) + ":" + String.valueOf(min));
+                    }
+                    else {
+                        intent = new Intent(StartScreen.this, SurveyScreen.class);
+                        intent.putExtra("ID", survey_ids.get(position));
+                        startActivity(intent);
+                    }
                 }
-            }
             }
         });
     }

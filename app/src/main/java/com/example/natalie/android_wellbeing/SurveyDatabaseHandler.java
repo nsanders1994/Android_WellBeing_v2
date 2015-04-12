@@ -27,6 +27,8 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
     private static final String KEY_COMPLETE    = "Complete";
     private static final String KEY_USER_ANS    = "UserAns";
     private static final String KEY_ANS_VALS    = "AnsVals";
+    private static final String KEY_TSTAMPS     = "TStamps";
+    private static final String KEY_VERSION     = "Version";
 
     public SurveyDatabaseHandler(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -43,22 +45,26 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
                 + KEY_TYPES       + " STRING,"
                 + KEY_COMPLETE    + " INTEGER,"
                 + KEY_USER_ANS    + " STRING,"
-                + KEY_ANS_VALS    + " STRING)");
+                + KEY_ANS_VALS    + " STRING,"
+                + KEY_TSTAMPS     + " STRING,"
+                + KEY_VERSION     + " INTEGER)");
     }
 
-    public void createSurvey(String times, int dur, String name, String ques, String ans, String types, String ansVals) {
+    public void createSurvey(String times, int dur, String name, String ques, String ans, String types, String ansVals, int version) {
         SQLiteDatabase db = getWritableDatabase();
         ContentValues values = new ContentValues();
 
-        values.put(KEY_POPUP_TIME,  times);
-        values.put(KEY_DURATION,    dur);
-        values.put(KEY_NAME,        name);
-        values.put(KEY_QUES,        ques);
-        values.put(KEY_ANSRS,       ans);
-        values.put(KEY_TYPES,       types);
-        values.put(KEY_COMPLETE,    0);
-        values.put(KEY_USER_ANS,    "empty");
-        values.put(KEY_ANS_VALS,    ansVals);
+        values.put(KEY_POPUP_TIME, times);
+        values.put(KEY_DURATION,   dur);
+        values.put(KEY_NAME,       name);
+        values.put(KEY_QUES,       ques);
+        values.put(KEY_ANSRS,      ans);
+        values.put(KEY_TYPES,      types);
+        values.put(KEY_COMPLETE,   0);
+        values.put(KEY_USER_ANS,   "empty");
+        values.put(KEY_ANS_VALS,   ansVals);
+        values.put(KEY_TSTAMPS,    "empty");
+        values.put(KEY_VERSION,    version);
 
         db.insert(TABLE_WELLBEING,null,values);
         db.close();
@@ -260,7 +266,7 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
         List <Integer> ans_intList = new ArrayList<>();
 
         if(!ans_str.equals("empty")) {
-            List <String> ans_strList = Arrays.asList(ans_str.split("%%"));
+            List <String> ans_strList = Arrays.asList(ans_str.split(","));
             int ansCt = ans_strList.size();
 
             Log.i("DEBUG>>>> ", "ans_str = " + ans_str);
@@ -307,7 +313,6 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
             List<String>  ansVal_strList = Arrays.asList(ansVal_array[i].split("%%"));
             int ansCt = ansVal_strList.size();
 
-            Log.i("DEBUG>>>>>", ansVal_str);
             Log.i("DEBUG>>>>>", ansVal_strList.toString());
             for(int j = 0; j < ansCt; j++) {
                 int integer = Integer.parseInt(ansVal_strList.get(j));
@@ -321,6 +326,64 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
         db.close();
 
         return ansVal_list;
+    }
+
+    public List<Long> getTStamps(int id) {
+        SQLiteDatabase db = getReadableDatabase();
+        Cursor cursor = db.rawQuery(
+                "SELECT " + KEY_USER_ANS +
+                        " FROM " + TABLE_WELLBEING +
+                        " WHERE rowid = " + id,
+                null
+        );
+
+        cursor.moveToFirst();
+        String tstamp_str = cursor.getString(0);
+        List <Long> tstamp_longList = new ArrayList<>();
+
+        if(!tstamp_str.equals("empty")) {
+            List <String> tstamp_strList = Arrays.asList(tstamp_str.split(","));
+            int tstampCt = tstamp_strList.size();
+
+            Log.i("DEBUG>>>> ", "tstamp_str = " + tstamp_str);
+            Log.i("DEBUG>>>> ", "tstamp_strList = " + tstamp_strList.toString());
+            Log.i("DEBUG>>>> ", "tstampCt = " + tstampCt);
+
+            for(int j = 0; j < tstampCt; j++) {
+                int longInt = Integer.parseInt(tstamp_strList.get(j));
+                tstamp_longList.add((long) longInt);
+            }
+        }
+        else {
+            int qCt = getQuesList(id).size();
+
+            for(int i = 0; i < qCt; i++){
+                tstamp_longList.add((long) 0);
+            }
+        }
+
+        cursor.close();
+        db.close();
+
+        return tstamp_longList;
+    }
+
+    public int getVersion(int id){
+        SQLiteDatabase db = getReadableDatabase();
+        Cursor cursor = db.rawQuery(
+                "SELECT " + KEY_VERSION +
+                        " FROM " + TABLE_WELLBEING +
+                        " WHERE rowid = " + id,
+                null
+        );
+
+        cursor.moveToFirst();
+        int version = cursor.getInt(0);
+
+        cursor.close();
+        db.close();
+
+        return version;
     }
 
     public int setComplete(boolean finished, int id) {
@@ -345,6 +408,21 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
         Log.i("STORE ANS>>>", ans);
 
         values.put(KEY_USER_ANS, ans);
+
+        int update = db.update(TABLE_WELLBEING, values, "rowid=" + id, null);
+        db.close();
+
+        return update;
+    }
+
+    public int storeTStamps(String tstamps, int id) {
+        SQLiteDatabase db = getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+
+        Log.i("STORE TSTAMPS>>>", tstamps);
+
+        values.put(KEY_TSTAMPS, tstamps);
 
         int update = db.update(TABLE_WELLBEING, values, "rowid=" + id, null);
         db.close();

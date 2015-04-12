@@ -18,7 +18,7 @@ import android.widget.Toast;
 /**
  * Created by Natalie on 12/17/2014.
  */
-public class UserDialog extends Activity {
+public class ReminderDialog extends Activity {
     int ID = 0;
     int iteration = 0;
     @Override
@@ -33,6 +33,8 @@ public class UserDialog extends Activity {
         // Initialize Database
         final SurveyDatabaseHandler dbHandler = new SurveyDatabaseHandler(getApplicationContext());
         AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+
+        dbHandler.setComplete(false, ID);
 
         // Set title
         String title = dbHandler.getName(ID);

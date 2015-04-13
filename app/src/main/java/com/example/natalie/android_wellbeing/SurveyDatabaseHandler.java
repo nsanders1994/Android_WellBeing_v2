@@ -331,7 +331,7 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
     public List<Long> getTStamps(int id) {
         SQLiteDatabase db = getReadableDatabase();
         Cursor cursor = db.rawQuery(
-                "SELECT " + KEY_USER_ANS +
+                "SELECT " + KEY_TSTAMPS +
                         " FROM " + TABLE_WELLBEING +
                         " WHERE rowid = " + id,
                 null
@@ -350,8 +350,8 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
             Log.i("DEBUG>>>> ", "tstampCt = " + tstampCt);
 
             for(int j = 0; j < tstampCt; j++) {
-                int longInt = Integer.parseInt(tstamp_strList.get(j));
-                tstamp_longList.add((long) longInt);
+                long longInt = Long.parseLong(tstamp_strList.get(j));
+                tstamp_longList.add(longInt);
             }
         }
         else {

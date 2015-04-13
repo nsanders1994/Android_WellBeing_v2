@@ -37,19 +37,31 @@ public class UpdateService extends IntentService {
             int curr_surveyTimeCt = dbHandler.getTimes(j).size();
             for(int k = 0; k < curr_surveyTimeCt; k++) { // for all times that survey is available
                 AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-                Intent alarmIntent = new Intent(getApplicationContext(), PopupService.class);
-                alarmIntent.putExtra("ID", j);
-                alarmIntent.putExtra("ITERATION", k);
+                Intent dialogIntent = new Intent(getApplicationContext(), PopupService.class);
+                dialogIntent.putExtra("ID", j);
+                dialogIntent.putExtra("ITERATION", k);
 
-                PendingIntent pendingIntent = PendingIntent.getService(
+                Intent notifIntent = new Intent(getApplicationContext(), PopupService.class);
+                notifIntent.putExtra("ID", j);
+                notifIntent.putExtra("ITERATION", k);
+
+                PendingIntent dialogPendingIntent = PendingIntent.getService(
                         getApplicationContext(),
                         Integer.parseInt(String.valueOf(j) + String.valueOf(k)),
-                        alarmIntent,
+                        dialogIntent,
+                        PendingIntent.FLAG_CANCEL_CURRENT);
+
+                PendingIntent notifPendingIntent = PendingIntent.getService(
+                        getApplicationContext(),
+                        Integer.parseInt(String.valueOf(j) + String.valueOf(k)),
+                        dialogIntent,
                         PendingIntent.FLAG_CANCEL_CURRENT);
 
                 // Cancel alarms
                 try {
-                    alarmManager.cancel(pendingIntent);
+                    alarmManager.cancel(notifPendingIntent);
+                    alarmManager.cancel(dialogPendingIntent);
+
                 } catch (Exception e) {
                     Log.e("ERROR>>> ", "AlarmManager update was not canceled. " + e.toString());
                 }
@@ -70,10 +82,10 @@ public class UpdateService extends IntentService {
 
                         if(!active) continue; // If the current survey is not active skip to the next survey
 
-                        final String name = survey_listing.getString("SurveyName");
-                        final List<Object> time = survey_listing.getList("SurveyTime");
-                        final int duration = survey_listing.getInt("SurveyDuration");
-                        final String table_name = survey_listing.getString("SurveyTableName");
+                        final String name = survey_listing.getString("Category");
+                        final List<Object> time = survey_listing.getList("Time");
+                        final int duration = survey_listing.getInt("surveyActiveDuration");
+                        final String table_name = survey_listing.getString("Survey");
                         final int surveyVersion    = survey_listing.getInt("Version");
 
                         // Get list of questions and their answers
@@ -91,10 +103,10 @@ public class UpdateService extends IntentService {
                                         ParseObject curr_ques = survey.get(j);
                                         int qID = curr_ques.getInt("questionId") - 1;
 
-                                        type.set(qID, curr_ques.getString("QuestionType"));
-                                        ques.set(qID, curr_ques.getString("Question"));
-                                        ans.set (qID, Utilities.join(curr_ques.getList("AnswerArray"), "%%"));
-                                        ansVals.set(qID, Utilities.join(curr_ques.getList("AnswerVals"), "%%"));
+                                        type.set(qID, curr_ques.getString("questionType"));
+                                        ques.set(qID, curr_ques.getString("question"));
+                                        ans.set (qID, Utilities.join(curr_ques.getList("options"), "%%"));
+                                        ansVals.set(qID, Utilities.join(curr_ques.getList("numericScale"), "%%"));
                                     }
 
                                     String ques_str = Utilities.join(ques, "%%");

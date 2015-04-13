@@ -7,7 +7,7 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     android:paddingBottom="@dimen/activity_vertical_margin"
     tools:context="com.sanders.natalie.well_being.Question2"
-    android:background="#ff364cff"
+    android:background="#50000000"
     android:id="@+id/layoutSurvey">
 
 
@@ -33,7 +33,8 @@
         android:layout_alignTop="@+id/bttnNext"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
-        android:background="#ff364cff" />
+        android:background="#50000000"
+        android:backgroundTint="#6c000000" />
 
     <Button
         android:layout_width="wrap_content"
@@ -44,6 +45,7 @@
         android:layout_alignParentBottom="true"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"
-        android:background="#ff364cff" />
+        android:background="#50000000"
+        android:backgroundTint="#6c000000" />
 
 </RelativeLayout>

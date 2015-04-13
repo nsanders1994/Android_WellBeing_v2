@@ -1,5 +1,6 @@
 package com.example.natalie.android_wellbeing;
 
+import android.media.Image;
 import android.os.Bundle;
 import android.app.Activity;
 import android.app.AlarmManager;
@@ -14,6 +15,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -173,8 +175,11 @@ public class StartScreen extends Activity {
                 arg1 = inflater.inflate(R.layout.list_item, arg2,false);
             }
 
-            TextView name = (TextView)arg1.findViewById(R.id.txtName);
-            TextView time = (TextView)arg1.findViewById(R.id.txtTime);
+            TextView name  = (TextView)arg1.findViewById(R.id.txtName);
+            TextView time  = (TextView)arg1.findViewById(R.id.txtTime);
+            ImageView pic = (ImageView)arg1.findViewById(R.id.imageView);
+
+
 
             List<String> times = dbHandler.getTimes(arg0 + 1);
             int timeCt = times.size();
@@ -219,7 +224,12 @@ public class StartScreen extends Activity {
                         zone1;
 
                 // Add to time string
-                t_string = t_string + ", " + t0 + "-" + t1;
+                if(j == 0) {
+                    t_string = t0 + "-" + t1;
+                }
+                else {
+                    t_string = t_string + ", " + t0 + "-" + t1;
+                }
 
                 // Check if survey is available
                 Calendar curr_calendar = Calendar.getInstance();
@@ -231,11 +241,30 @@ public class StartScreen extends Activity {
             }
 
             // Set strings;
+            String name_str = dbHandler.getName(arg0 + 1);
             time.setText(t_string);
-            name.setText(dbHandler.getName(arg0 + 1));
+            name.setText(name_str);
+
+            if(name_str.equals("Spirituality")){
+                pic.setImageResource(R.drawable.spirituality);
+            }
+            else if(name_str.equals("Life")) {
+                pic.setImageResource(R.drawable.life);
+            }
+            else if(name_str.equals("Mood")) {
+                pic.setImageResource(R.drawable.mood);
+            }
+            else if(name_str.equals("Sleep Pattern")) {
+                pic.setImageResource(R.drawable.sleep);
+            }
+            else if(name_str.equals("Social Interaction")) {
+                pic.setImageResource(R.drawable.social);
+            }
+            else if(name_str.equals("Day Reconstruction")) {
+                pic.setImageResource(R.drawable.day_reconstructor);
+            }
 
             // Gray out text if not available
-
             boolean completed = dbHandler.isCompleted(arg0 + 1);
             if(!accessible || completed) {
                 time.setTextColor(getResources().getColor(android.R.color.darker_gray));

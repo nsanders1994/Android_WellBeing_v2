@@ -54,10 +54,10 @@ public class WellBeing extends Application {
 
                             if(!active) continue; // If the current survey is not active skip to the next survey
 
-                            final String name          = survey_listing.getString("SurveyName");
-                            final List<Object> time    = survey_listing.getList("SurveyTime");
-                            final int duration         = survey_listing.getInt("SurveyDuration");
-                            final String table_name    = survey_listing.getString("SurveyTableName");
+                            final String name          = survey_listing.getString("Category");
+                            final List<Object> time    = survey_listing.getList("Time");
+                            final int duration         = survey_listing.getInt("surveyActiveDuration");
+                            final String table_name    = survey_listing.getString("Survey");
                             final int surveyVersion    = survey_listing.getInt("Version");
 
                             // Get list of questions and their answers
@@ -71,8 +71,6 @@ public class WellBeing extends Application {
                                         List<Object> ans = new ArrayList<>(ques_ct);
                                         List<Object> type = new ArrayList<>(ques_ct);
                                         List<Object> ansVals = new ArrayList<>(ques_ct);
-                                        Log.i("DEBUG>>>>>", "array size = " + String.valueOf(type.size()));
-
 
                                         for(int k = 0; k < ques_ct; k++) {
                                             type.add("filler");
@@ -80,15 +78,17 @@ public class WellBeing extends Application {
                                             ans.add (new ArrayList<>());
                                             ansVals.add(new ArrayList<>());
                                         }
+                                        Log.i("DEBUG>>>>>", "array size = " + String.valueOf(type.size()));
+
 
                                         for (int j = 0; j < ques_ct; j++) {
                                             ParseObject curr_ques = survey.get(j);
                                             int qID = curr_ques.getInt("questionId") - 1;
 
-                                            type.set(qID, curr_ques.getString("QuestionType"));
-                                            ques.set(qID, curr_ques.getString("Question"));
-                                            ans.set(qID, Utilities.join(curr_ques.getList("AnswerArray"), "%%"));
-                                            ansVals.set(qID, Utilities.join(curr_ques.getList("AnswerVals"), "%%"));
+                                            type.set(qID, curr_ques.getString("questionType"));
+                                            ques.set(qID, curr_ques.getString("question"));
+                                            ans.set(qID, Utilities.join(curr_ques.getList("options"), "%%"));
+                                            ansVals.set(qID, Utilities.join(curr_ques.getList("numericScale"), "%%"));
                                         }
 
                                         String ques_str = Utilities.join(ques, "%%");
@@ -107,14 +107,25 @@ public class WellBeing extends Application {
                                             cal.set(Calendar.MINUTE, min);
                                             cal.set(Calendar.SECOND, 0);
 
-                                            Intent intent = new Intent(getApplicationContext(), PopupService.class);
-                                            intent.putExtra("ID", survey_id);
-                                            intent.putExtra("ITERATION", j);
+                                            // Create intents
+                                            Intent dialogIntent = new Intent(getApplicationContext(), PopupService.class);
+                                            dialogIntent.putExtra("ID", survey_id);
+                                            dialogIntent.putExtra("ITERATION", j);
 
-                                            PendingIntent pendingIntent = PendingIntent.getService(
+                                            Intent notifIntent = new Intent(getApplicationContext(), NotificationService.class);
+                                            notifIntent.putExtra("ID", survey_id);
+                                            notifIntent.putExtra("ITERATION", j);
+
+                                            PendingIntent dialogPendingIntent = PendingIntent.getService(
                                                     getApplicationContext(),
                                                     Integer.parseInt(String.valueOf(survey_id) + String.valueOf(j)),
-                                                    intent,
+                                                    dialogIntent,
+                                                    PendingIntent.FLAG_CANCEL_CURRENT);
+
+                                            PendingIntent notifPendingIntent = PendingIntent.getService(
+                                                    getApplicationContext(),
+                                                    Integer.parseInt(String.valueOf(survey_id) + String.valueOf(j)),
+                                                    notifIntent,
                                                     PendingIntent.FLAG_CANCEL_CURRENT);
 
                                             for(int i = 0; i < 4; i++){
@@ -128,12 +139,23 @@ public class WellBeing extends Application {
                                                     cal.add(Calendar.DAY_OF_YEAR, 1); // add, not set!
                                                 }
 
-                                                // Set alarm for survey pop-up to go off at default of 8:00 AM
-                                                alarmManager.setRepeating(
-                                                        AlarmManager.RTC_WAKEUP,
-                                                        cal.getTimeInMillis(),
-                                                        alarmManager.INTERVAL_DAY,
-                                                        pendingIntent);
+                                                if(i < 3) {
+                                                    // Set alarm for survey notification
+                                                    alarmManager.setRepeating(
+                                                            AlarmManager.RTC_WAKEUP,
+                                                            cal.getTimeInMillis(),
+                                                            alarmManager.INTERVAL_DAY,
+                                                            notifPendingIntent);
+                                                }
+                                                else {
+                                                    // Set alarm for survey diolog
+                                                    alarmManager.setRepeating(
+                                                            AlarmManager.RTC_WAKEUP,
+                                                            cal.getTimeInMillis(),
+                                                            alarmManager.INTERVAL_DAY,
+                                                            dialogPendingIntent);
+                                                }
+
 
                                                 cal.add(Calendar.MINUTE, duration/4);
                                             }

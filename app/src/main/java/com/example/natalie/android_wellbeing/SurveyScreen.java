@@ -1,11 +1,13 @@
 package com.example.natalie.android_wellbeing;
 
+import android.app.ActionBar;
 import android.os.Bundle;
 import android.app.Activity;
 import android.content.Intent;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.SeekBar;
 import android.widget.TableLayout;
@@ -38,6 +40,8 @@ public class SurveyScreen extends Activity {
     private int  []             ans_cts;
     private int                 ques_answered_ct  = 0;
     private int                 qNo = 0;
+    private int                 ques_in_view = 1;
+    //private ArrayList<Integer>  q_in_view;
 
 
     @Override
@@ -70,17 +74,7 @@ public class SurveyScreen extends Activity {
 
         // Initialize answer and time-stamp output lists
         ansrs = dbHandler.getUserAns(ID);
-        /*ansrs = new ArrayList<Integer>(ques_ct); //= new int[ques_ct];
-
-        List<Integer> stored_ansrs = dbHandler.getUserAns(ID);
-        int ct = stored_ansrs.size();
-        for(int j = 0; j < ct; j++){
-            ansrs[j] = stored_ansrs.get(j);
-        }*/
-
-        //tstamps = new long[ques_ct];
         tstamps = dbHandler.getTStamps(ID);
-
 
         // On the event of the user clicking 'next'
         nextBttn.setOnClickListener(new View.OnClickListener() {
@@ -100,15 +94,9 @@ public class SurveyScreen extends Activity {
 
                     // Store answers and timestamps
                     dbHandler.storeAnswers(Utilities.join(temp1, ","), ID);
+                    Log.i("DEBUG>>>>", "tstamp string = " + Utilities.join(temp2, ","));
                     dbHandler.storeTStamps(Utilities.join(temp2, ","), ID);
 
-                    /*
-                    Integer[] temp = new Integer[ques_ct];
-                    ansrs.toArray(temp);
-
-                    intent.putExtra("ANS", ansrs.toArray());
-                    Log.i("DEBUG>>>>>", "In Survey, ans = " + temp);
-                    intent.putExtra("TSTAMP", temp);*/
                     intent.putExtra("CT", ques_answered_ct);
                     intent.putExtra("ID", ID);
 
@@ -116,10 +104,7 @@ public class SurveyScreen extends Activity {
                 }
                 else
                 {
-                    Log.i("DEBUG>>>> ", "On next: before inc = " + String.valueOf(qNo));
                     qNo++;
-                    Log.i("DEBUG>>>> ", "On next: after inc = " + String.valueOf(qNo));
-
                     nextView();
                 }
             }
@@ -129,7 +114,7 @@ public class SurveyScreen extends Activity {
         prevBttn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(qNo - 1 == -1) {
+                if(qNo - ques_in_view == -1) {
                     // Convert to object list in order to join by delimiter
                     List<Object> temp1 = new ArrayList<Object>();
                     List<Object> temp2 = new ArrayList<Object>();
@@ -137,6 +122,7 @@ public class SurveyScreen extends Activity {
                     temp1.addAll(ansrs);
                     temp2.addAll(tstamps);
 
+                    Log.i(">>>>>>> ANSWERS", ansrs.toString());
                     // Store answers and timestamps
                     dbHandler.storeAnswers(Utilities.join(temp1, ","), ID);
                     dbHandler.storeTStamps(Utilities.join(temp2, ","), ID);
@@ -145,16 +131,17 @@ public class SurveyScreen extends Activity {
                     startActivityForResult(intent, 2);
                 }
                 else {
-                    /*
-                    if(ques_types.get(qNo--) == "slider") {
-                        int num_rows = surveyTable.getChildCount();
-                        int inview_ques_ct = num_rows/3;
-                        for(int i = 0; i < inview_ques_ct; i++) {
+                    Log.i("DEBUG>>>>>>", "curr qNo = " + String.valueOf(qNo));
+                    qNo = qNo - ques_in_view;
+                    Log.i("DEBUG>>>>>>", "qNo - q_in_view = " + String.valueOf(qNo));
+
+                    for(int i = 0; i < 3; i++) {
+                        if(ques_types.get(qNo - 1).equals("Slider")){
                             qNo--;
+                            Log.i("DEBUG>>>>>>", "after loop dec " + String.valueOf(i+1) + ", qNo = " + String.valueOf(qNo));
                         }
-                    }*/
-                    //else
-                    qNo--;
+                        else break;
+                    }
                     nextView();
                 }
             }
@@ -181,7 +168,7 @@ public class SurveyScreen extends Activity {
         TableLayout.LayoutParams rowParam = new TableLayout.LayoutParams();
         rowParam.height = TableRow.LayoutParams.MATCH_PARENT;
         rowParam.width = TableRow.LayoutParams.MATCH_PARENT;
-        rowParam.bottomMargin = 2;
+        rowParam.bottomMargin = 10;
 
         // Centered Parameters
         TableRow.LayoutParams centerParam = new TableRow.LayoutParams();
@@ -201,12 +188,16 @@ public class SurveyScreen extends Activity {
         // Button layout
         if(ques_types.get(qNo).equals("Button")) {
             Log.i("DEBUG>>>>", "creating a button survey");
+            ques_in_view = 1;
+
             // Create Question Row
             TableRow quesRow = new TableRow(this);
             quesRow.setLayoutParams(rowParam);
 
             TextView quesTxt = new TextView(this);
             quesTxt.setLayoutParams(leftParam);
+            quesTxt.setTextSize(20);
+            quesTxt.setTextColor(getResources().getColor(android.R.color.white));
             quesTxt.setText(ques_strs.get(qNo));
 
             quesRow.addView(quesTxt);
@@ -217,12 +208,15 @@ public class SurveyScreen extends Activity {
                 final int curr_row = i;
 
                 ansRows.add(new TableRow(this));
-                ansRows.get(i).setLayoutParams(leftParam);
-                ansRows.get(i).setBackgroundColor(getResources().getColor(android.R.color.holo_green_light));
+                ansRows.get(i).setLayoutParams(rowParam);
+                ansRows.get(i).setBackgroundColor(getResources().getColor(R.color.survey_dark_grey));
 
                 TextView ansTxt = new TextView(this);
                 ansTxt.setLayoutParams(leftParam);
+                ansTxt.setTextColor(getResources().getColor(android.R.color.white));
+                ansTxt.setTextSize(20);
                 ansTxt.setText(ans_str_lists.get(qNo).get(i));
+                ansTxt.setPadding(10, 5, 5, 5);
 
                 ansRows.get(i).addView(ansTxt);
                 surveyTable.addView(ansRows.get(i));
@@ -232,12 +226,12 @@ public class SurveyScreen extends Activity {
                     public void onClick(View view) {
                         // Show answer selected
                         resetColors();
-                        view.setBackgroundColor(getResources().getColor(android.R.color.holo_green_dark));
+                        view.setBackgroundColor(getResources().getColor(android.R.color.black));
 
                         // If the answer changed, update time stamp
-                        if (ansrs.get(qNo) != curr_row) {
+                        if (ansrs.get(qNo) != ans_val_lists.get(qNo).get(curr_row)) {
                             setTstamp(qNo);
-                        };
+                        }
 
                         // Record Answer
                         ansrs.set(qNo, ans_val_lists.get(qNo).get(curr_row));
@@ -248,14 +242,14 @@ public class SurveyScreen extends Activity {
             // Show answer selected previously;
             if(ansrs.get(qNo) != 0) {
                 int ans = ansrs.get(qNo);
-                ansRows.get(ans - 1).setBackgroundColor(getResources().getColor(android.R.color.holo_green_dark));
+                ansRows.get(ans - 1).setBackgroundColor(getResources().getColor(android.R.color.black));
             }
         }
         // Slider layout
         else if (ques_types.get(qNo).equals("Slider")) {
-            Log.i("DEBUG>>>>>>", "Creating slider survey");
             int sliderCt = 0;
             final int topQues = qNo;
+            Log.i("DEBUG>>>>", "In slider creation, qNo init = " + String.valueOf(qNo));
             for(int i = qNo; i < ques_ct && sliderCt < 4; i++) {
                 if(ques_types.get(i).equals("Slider")) {
                     // Create Question Row
@@ -264,6 +258,8 @@ public class SurveyScreen extends Activity {
 
                     TextView quesTxt = new TextView(this);
                     quesTxt.setLayoutParams(leftParam);
+                    quesTxt.setTextColor(getResources().getColor(android.R.color.white));
+                    quesTxt.setTextSize(20);
                     quesTxt.setText(ques_strs.get(i));
 
                     quesRow.addView(quesTxt);
@@ -277,8 +273,12 @@ public class SurveyScreen extends Activity {
                     ansRow.setLayoutParams(rowParam);
 
                     sliders.add(new SeekBar(this));
-                    sliders.get(sliderCt).setLayoutParams(centerParam);
-                    sliderRow.addView(sliders.get(sliderCt));
+                    TableRow.LayoutParams sliderParam = new TableRow.LayoutParams(
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ActionBar.LayoutParams.WRAP_CONTENT,
+                            1);
+                    //sliders.get(sliderCt).setLayoutParams(centerParam);
+                    sliderRow.addView(sliders.get(sliderCt), sliderParam);
 
                     // Create TextView Row
                     sliderAns.add(new TextView(this));
@@ -291,10 +291,9 @@ public class SurveyScreen extends Activity {
                     // Initialize Slider
                     sliders.get(sliderCt).setProgress(0);
                     sliders.get(sliderCt).setMax(ans_cts[i]);
-                    Log.i("DEBUG>>>>>>", "ans_cts[" + String.valueOf(i) + "] = " + String.valueOf(ans_cts[i]));
 
                     // Initialize TextView
-                    int index = ans_val_lists.get(qNo).indexOf(ansrs.get(i)); // get index of user's answer in answer list
+                    int index = ans_val_lists.get(qNo + sliderCt).indexOf(ansrs.get(i)); // get index of user's answer in answer list
 
                     if(index != -1) {
                         sliders.get(sliderCt).incrementProgressBy(index + 1); // set progress of slider to user's answer
@@ -311,13 +310,25 @@ public class SurveyScreen extends Activity {
                     sliders.get(sliderCt).setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                         @Override
                         public void onProgressChanged(SeekBar seekBar, int j, boolean b) {
-                            Log.i("DEBUG>>>>>", "In slider listener: sliderOffset = " + String.valueOf(sliderOffset) + " topQues = " + String.valueOf(topQues) + " j = " + String.valueOf(j) );
 
-                            setTstamp(topQues + sliderOffset);
+                            Log.i("DEBUG>>>", "topQues = " + String.valueOf(topQues));
+                            Log.i("DEBUG>>>", "sliderOffset = " + String.valueOf(sliderOffset));
+                            Log.i("DEBUG>>>", "ansrs size = " + ansrs.size());
+                            Log.i("DEBUG>>>", "ans_val_lists size = " + ans_val_lists.size());
+                            Log.i("DEBUG>>>", "ans_val_lists.get(index) size = " + String.valueOf(ans_val_lists.get(qNo)));
+
+                            int curr_ans = ansrs.get(topQues + sliderOffset);
+                            int new_ans = ans_val_lists.get(topQues + sliderOffset).get(j - 1);
+
+                            if(curr_ans != new_ans) {
+                                setTstamp(topQues + sliderOffset);
+                            }
 
                             if(j != 0 ) {
                                 sliderAns.get(sliderOffset).setText(ans_str_lists.get(topQues + sliderOffset).get(j - 1));
-                                ansrs.set(topQues + sliderOffset, ans_val_lists.get(topQues + sliderOffset).get(j - 1));
+
+                                Log.i(">>>>>> SETTING ANSWER", String.valueOf(ans_val_lists.get(topQues + sliderOffset).get(j - 1)));
+                                ansrs.set(topQues + sliderOffset, new_ans);
                             }
                             else {
                                 sliderAns.get(sliderOffset).setText("");
@@ -337,14 +348,17 @@ public class SurveyScreen extends Activity {
                 }
                 else break;
             }
+            Log.i("DEBUG>>>>", "In slider creation, qNo final = " + String.valueOf(qNo));
+            Log.i("DEBUG>>>>", "In slider creation, sliderCt = " + String.valueOf(sliderCt));
             qNo = qNo + sliderCt - 1;      // increment current question number
+            ques_in_view = sliderCt;
         }
     }
 
     public void resetColors() {
         int curr_ans_ct = ans_cts[qNo];
         for(int i = 0; i < curr_ans_ct; i++){
-            ansRows.get(i).setBackgroundColor(getResources().getColor(android.R.color.holo_green_light));
+            ansRows.get(i).setBackgroundColor(getResources().getColor(R.color.survey_dark_grey));
         }
     }
 
@@ -359,11 +373,9 @@ public class SurveyScreen extends Activity {
     }
 
     public void setTstamp(int num) {
-        Log.i("DEBUG>>>>>>>>>>>", "qNo is " + String.valueOf(qNo));
-
-        if(ansrs.get(num) != 0) {
+            Log.i("DEBUG>>>>>", "Timestamp = " + String.valueOf(System.currentTimeMillis() / 1000L));
             tstamps.set(num, System.currentTimeMillis() / 1000L);
-        }
+            Log.i("DEBUG>>>>>", "tstamp in array = " + String.valueOf(tstamps.get(num)));
     }
 
     @Override
@@ -380,6 +392,14 @@ public class SurveyScreen extends Activity {
             tstamps = dbHandler.getTStamps(ID);
 
             qNo = ques_ct - 1;
+            ques_in_view = 1;
+            for(int i = 0; i < 3; i++) {
+                if(ques_types.get(qNo - 1).equals("Slider")){
+                    ques_in_view++;
+                    qNo--;
+                }
+                else break;
+            }
 
             // Reset selection of table view
             nextView();

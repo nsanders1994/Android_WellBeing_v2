@@ -168,9 +168,14 @@ public class FinishScreen extends Activity {
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
         String email = prefs.getString(getString(R.string.user_email), "ERROR");
         for(int i = 0; i < size; i++) {
-            ParseObject ques = new ParseObject("SurveyResponseDatabase"); //Installation.id(this));
-            ques.put("userId", InstallationID.id(this));
+            ParseObject ques = new ParseObject("ResponseDatabase");
+            if(ques != null) {
+                Log.i("DEBUG>>>", "Parse object not null");
+            }
+
+            ques.put("appId", R.string.app_version);
             ques.put("emailId", email);
+            ques.put("userId", InstallationID.id(this));
             ques.put("surveyId", version);
             ques.put("questionId", i+1);
             ques.put("response", ans.get(i));

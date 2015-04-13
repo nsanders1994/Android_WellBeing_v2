@@ -19,8 +19,8 @@ import android.widget.Toast;
  * Created by Natalie on 12/17/2014.
  */
 public class ReminderDialog extends Activity {
-    int ID = 0;
-    int iteration = 0;
+    private int ID = 0;
+    private int iteration = 0;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

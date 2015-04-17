@@ -66,9 +66,8 @@ public class FinishScreen extends Activity {
 
                 // Submit survey to parse website
                 sendToParse();
-                cancelAlarms();
-                resetAlarms();
-
+                //cancelAlarms();
+                //resetAlarms();
 
                 // Set survey to completed
                 dbHandler.setComplete(true, id);

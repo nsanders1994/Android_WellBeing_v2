@@ -48,23 +48,7 @@ public class StartScreen extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        /*
-        IntentFilter intentFilter = new IntentFilter(
-                "android.intent.action.MAIN");
-
-        receiver = new BroadcastReceiver() {
-
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                //extract our message from intent
-                String msg_for_me = intent.getStringExtra("some_msg");
-                //log our message value
-                Log.i("InchooTutorial", msg_for_me);
-
-            }
-        };
-        //registering our receiver
-        this.registerReceiver(receiver, intentFilter);*/
+        startListAdapter.notifyDataSetChanged();
     }
 
     @Override

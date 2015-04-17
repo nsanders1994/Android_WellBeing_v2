@@ -1,27 +1,20 @@
 package com.example.natalie.android_wellbeing;
 
 import android.app.Activity;
-import android.app.Notification;
 
 /**
  * Created by Natalie on 4/10/2015.
  */
-import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v4.app.NotificationCompat;
-import android.app.Activity;
-import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.support.v4.app.TaskStackBuilder;
 import android.util.Log;
 
 public class ReminderNotification extends Activity {
-    private int ID = 0;
-    private int iteration = 0;
-    private static final int NOTIFY_ME_ID=1337;
+    int ID = 0;
     SurveyDatabaseHandler dbHandler;
 
     @Override

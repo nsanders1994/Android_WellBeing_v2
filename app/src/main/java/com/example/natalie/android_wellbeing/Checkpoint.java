@@ -22,8 +22,9 @@ public class Checkpoint extends Service {
         SurveyDatabaseHandler dbHandler = new SurveyDatabaseHandler(getApplicationContext());
 
         List<String> times = dbHandler.getTimes(id);
-        int duration = dbHandler.getDuration(id);
+        int duration       = dbHandler.getDuration(id);
         String survey_name = dbHandler.getName(id);
+
         Log.i("DEBUG>>>", "In Checkpoint, ID for " + survey_name + " = " + String.valueOf(id));
         int timeCt = times.size();
         boolean valid = false;
@@ -49,9 +50,7 @@ public class Checkpoint extends Service {
             Calendar cal1 = calInit1;
             cal1.add(Calendar.HOUR_OF_DAY, hr);
             cal1.add(Calendar.MINUTE, min + duration);
-
-
-
+            
             Calendar curr_cal = Calendar.getInstance();
 
             if(curr_cal.getTimeInMillis() >= cal0.getTimeInMillis() &&

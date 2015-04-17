@@ -50,7 +50,7 @@ public class Checkpoint extends Service {
             Calendar cal1 = calInit1;
             cal1.add(Calendar.HOUR_OF_DAY, hr);
             cal1.add(Calendar.MINUTE, min + duration);
-            
+
             Calendar curr_cal = Calendar.getInstance();
 
             if(curr_cal.getTimeInMillis() >= cal0.getTimeInMillis() &&

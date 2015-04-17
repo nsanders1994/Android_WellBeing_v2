@@ -12,13 +12,12 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.util.Log;
 
 public class SurveyDatabaseHandler extends SQLiteOpenHelper {
     private static final int DATABASE_VERSION   = 4;
     private static final String DATABASE_NAME   = "WellbeingManager";
     private static final String TABLE_WELLBEING = "Wellbeing";
-    private static final String KEY_POPUP_TIME  = "PopupHr";
+    private static final String KEY_POPUP_TIME  = "PopupTime";
     private static final String KEY_DURATION    = "Duration";
     private static final String KEY_NAME        = "Name";
     private static final String KEY_QUES        = "Questions";
@@ -37,6 +36,7 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
     @Override
     public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE " + TABLE_WELLBEING + "("
+                + "ID INTEGER PRIMARY KEY AUTOINCREMENT, "
                 + KEY_POPUP_TIME  + " STRING,"
                 + KEY_DURATION    + " INTEGER,"
                 + KEY_NAME        + " STRING,"
@@ -70,9 +70,38 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
         db.close();
     }
 
+    public int getLastRowID(){
+
+        SQLiteDatabase db = getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT MAX(rowid) FROM " + TABLE_WELLBEING, null);
+
+        cursor.moveToFirst();
+        int max_id = cursor.getInt(0);
+
+        cursor.close();
+        db.close();
+
+        return max_id;
+
+    }
+
     public void deleteAll() {
         SQLiteDatabase db = getWritableDatabase();
-        db.execSQL("delete * from "+ TABLE_WELLBEING);
+        db.execSQL("DELETE FROM " + TABLE_WELLBEING);
+        db.execSQL("DELETE FROM sqlite_sequence WHERE name='Wellbeing'");
+        /*db.execSQL("DROP TABLE "+ TABLE_WELLBEING);
+        db.execSQL("CREATE TABLE " + TABLE_WELLBEING + "("
+                + KEY_POPUP_TIME  + " STRING,"
+                + KEY_DURATION    + " INTEGER,"
+                + KEY_NAME        + " STRING,"
+                + KEY_QUES        + " STRING,"
+                + KEY_ANSRS       + " STRING,"
+                + KEY_TYPES       + " STRING,"
+                + KEY_COMPLETE    + " INTEGER,"
+                + KEY_USER_ANS    + " STRING,"
+                + KEY_ANS_VALS    + " STRING,"
+                + KEY_TSTAMPS     + " STRING,"
+                + KEY_VERSION     + " INTEGER)");*/
     }
 
     public int getSurveyCount(){
@@ -120,7 +149,7 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
         );
 
         cursor.moveToFirst();
-        String time_str = cursor.getString(0); //Integer.parseInt(cursor.getString(cursor.getColumnIndex(KEY_POPUP_HR)));
+        String time_str = cursor.getString(0);
         List<String> time_list = Arrays.asList(time_str.split(","));
 
         cursor.close();
@@ -269,10 +298,6 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
             List <String> ans_strList = Arrays.asList(ans_str.split(","));
             int ansCt = ans_strList.size();
 
-            Log.i("DEBUG>>>> ", "ans_str = " + ans_str);
-            Log.i("DEBUG>>>> ", "ans_strList = " + ans_strList.toString());
-            Log.i("DEBUG>>>> ", "ansCt = " + ansCt);
-
             for(int j = 0; j < ansCt; j++) {
                 int integer = Integer.parseInt(ans_strList.get(j));
                 ans_intList.add(integer);
@@ -313,7 +338,6 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
             List<String>  ansVal_strList = Arrays.asList(ansVal_array[i].split("%%"));
             int ansCt = ansVal_strList.size();
 
-            Log.i("DEBUG>>>>>", ansVal_strList.toString());
             for(int j = 0; j < ansCt; j++) {
                 int integer = Integer.parseInt(ansVal_strList.get(j));
                 ansVal_intList.add(integer);
@@ -344,10 +368,6 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
         if(!tstamp_str.equals("empty")) {
             List <String> tstamp_strList = Arrays.asList(tstamp_str.split(","));
             int tstampCt = tstamp_strList.size();
-
-            Log.i("DEBUG>>>> ", "tstamp_str = " + tstamp_str);
-            Log.i("DEBUG>>>> ", "tstamp_strList = " + tstamp_strList.toString());
-            Log.i("DEBUG>>>> ", "tstampCt = " + tstampCt);
 
             for(int j = 0; j < tstampCt; j++) {
                 long longInt = Long.parseLong(tstamp_strList.get(j));
@@ -405,8 +425,6 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
 
         ContentValues values = new ContentValues();
 
-        Log.i("STORE ANS>>>", ans);
-
         values.put(KEY_USER_ANS, ans);
 
         int update = db.update(TABLE_WELLBEING, values, "rowid=" + id, null);
@@ -419,8 +437,6 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
         SQLiteDatabase db = getWritableDatabase();
 
         ContentValues values = new ContentValues();
-
-        Log.i("STORE TSTAMPS>>>", tstamps);
 
         values.put(KEY_TSTAMPS, tstamps);
 

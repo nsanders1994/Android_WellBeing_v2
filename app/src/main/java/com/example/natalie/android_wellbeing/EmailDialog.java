@@ -13,8 +13,12 @@ import android.os.Bundle;
 import android.os.Vibrator;
 import android.preference.PreferenceManager;
 import android.text.InputType;
+import android.util.Log;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
+
+import java.util.regex.Pattern;
 
 /**
  * Created by Natalie on 4/11/2015.
@@ -40,33 +44,60 @@ public class EmailDialog extends Activity {
 
         // set dialog message
         alertDialogBuilder
-                .setMessage("\nPlease, enter your email address:\n")
+                .setMessage("\nEnter your email address:\n\n")
                 .setNeutralButton("Okay", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
-                        String email = input.getText().toString();
-
-                        if(email.matches("")) {
-                            alertDialogBuilder.setMessage("You must enter an email address:");
-                        }
-                        else {
-                            final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-                            SharedPreferences.Editor edit = prefs.edit();
-                            edit.putBoolean(getString(R.string.emailStored), Boolean.TRUE);
-                            edit.putString(getString(R.string.user_email), email);
-                            edit.commit();
-
-                            dialogInterface.cancel();
-                            finish();
-                        }
+                        // TODO Auto-generated method stub
                     }
-                });
+                })
+                .setCancelable(false);
 
 
         // Create alert dialog
-        AlertDialog alertDialog = alertDialogBuilder.create();
+        final AlertDialog alertDialog = alertDialogBuilder.create();
 
         // Show alert dialog
         alertDialog.show();
+
+        alertDialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View v)
+            {
+                String email = input.getText().toString();
+                Pattern EMAIL_ADDRESS_PATTERN = Pattern.compile(
+                        "[a-zA-Z0-9\\+\\.\\_\\%\\-\\+]{1,256}" +
+                                "\\@" +
+                                "[a-zA-Z0-9][a-zA-Z0-9\\-]{0,64}" +
+                                "(" +
+                                "\\." +
+                                "[a-zA-Z0-9][a-zA-Z0-9\\-]{0,25}" +
+                                ")+"
+                );
+
+                if (input.getText().toString().trim().length() == 0) {
+                    Log.i("DEBUG>>>", "no input");
+                    alertDialog.setMessage("You must enter an email address\n\n");
+                } else if (!EMAIL_ADDRESS_PATTERN.matcher(email).matches()) {
+                    Log.i("DEBUG>>>", "invalid email");
+                    alertDialog.setMessage("Invalid email address\n\n");
+                } else {
+                    final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+                    SharedPreferences.Editor edit = prefs.edit();
+                    edit.putBoolean(getString(R.string.emailStored), Boolean.TRUE);
+                    edit.putString(getString(R.string.user_email), email);
+                    edit.commit();
+
+                    alertDialog.cancel();
+                    finish();
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onBackPressed() {
+        Log.i("DEBUG>>>", "Back not allowed");
     }
 }

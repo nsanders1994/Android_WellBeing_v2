@@ -4,6 +4,7 @@ import android.app.IntentService;
 import android.content.Context;
 import android.content.Intent;
 import android.media.AudioManager;
+import android.util.Log;
 
 /**
  * Created by Natalie on 2/4/2015.
@@ -23,9 +24,9 @@ public class PopupService extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
-        int ID = intent.getIntExtra("ID", 1);
-        int iteration = intent.getIntExtra("ITERATION", 0);
+        Log.i("Dialog>>>", "Dialog Service handled");
 
+        int ID = intent.getIntExtra("ID", 1);
 
         // If the user is not making a phone call, create a pop-up alert dialog
         AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
@@ -33,7 +34,6 @@ public class PopupService extends IntentService {
             Intent i = new Intent(PopupService.this, ReminderDialog.class);
             i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             i.putExtra("ID", ID);
-            i.putExtra("ITERATION", iteration);
             startActivity(i);
         }
     }

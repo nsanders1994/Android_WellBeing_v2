@@ -1,5 +1,7 @@
 package com.example.natalie.android_wellbeing;
 
+import android.content.BroadcastReceiver;
+import android.content.IntentFilter;
 import android.media.Image;
 import android.os.Bundle;
 import android.app.Activity;
@@ -8,7 +10,9 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Handler;
 import android.preference.PreferenceManager;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -18,6 +22,7 @@ import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.parse.FindCallback;
 import com.parse.ParseException;
@@ -33,13 +38,63 @@ public class StartScreen extends Activity {
     SurveyDatabaseHandler dbHandler;
     List<Integer> survey_ids = new ArrayList<Integer>();
     ListView startListView;
+    private static final String TAG = "BroadcastTest";
+    private Intent broadcastIntent;
     StartListAdapter startListAdapter;
+    BroadcastReceiver receiver;
+
+
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        /*
+        IntentFilter intentFilter = new IntentFilter(
+                "android.intent.action.MAIN");
+
+        receiver = new BroadcastReceiver() {
+
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                //extract our message from intent
+                String msg_for_me = intent.getStringExtra("some_msg");
+                //log our message value
+                Log.i("InchooTutorial", msg_for_me);
+
+            }
+        };
+        //registering our receiver
+        this.registerReceiver(receiver, intentFilter);*/
+    }
+
+    @Override
+    protected void onPause() {
+        // TODO Auto-generated method stub
+        super.onPause();
+        //unregister our receiver
+        //this.unregisterReceiver(this.receiver);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Set start view
+        setContentView(R.layout.activity_start_screen);
 
         dbHandler = new SurveyDatabaseHandler(getApplicationContext());
+
+        startListView    = (ListView) findViewById(R.id.listView);
+        startListAdapter = new StartListAdapter();
+        startListView.setAdapter(startListAdapter);
+        survey_ids = dbHandler.getSurveyIDs();
+
+        Intent caller = getIntent();
+        boolean makeToast = caller.getBooleanExtra("TOAST", false);
+
+        // If start screen was called from notification/dialog because survey expired
+        if(makeToast) {
+            Toast.makeText(getApplicationContext(), "The survey requested has already expired", Toast.LENGTH_SHORT);
+        }
 
         // If app was just installed get all surveys from Parse and store in database
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
@@ -50,17 +105,19 @@ public class StartScreen extends Activity {
             startActivity(intent);
         }
 
-
-        // Set start view
-        setContentView(R.layout.activity_start_screen);
-
-        startListView    = (ListView) findViewById(R.id.listView);
-        startListAdapter = new StartListAdapter();
-        startListView.setAdapter(startListAdapter);
-        survey_ids = dbHandler.getSurveyIDs();
-
         // Start background service to check for updated popup times
-        start_UpdatesService();
+        // TODO start_UpdatesService();
+
+        // Update Listview evey minute to keep it fresh
+        /*final Handler handler = new Handler();
+        handler.postDelayed( new Runnable() {
+
+            @Override
+            public void run() {
+                startListAdapter.notifyDataSetChanged();
+                handler.postDelayed( this, 60 * 1000 );
+            }
+        }, 60 * 1000 );*/
 
         startListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
@@ -130,21 +187,35 @@ public class StartScreen extends Activity {
         });
     }
 
+
+
     public void start_UpdatesService() {
 
         PendingIntent pendingIntent = PendingIntent.getService(
                 getApplicationContext(),
                 1,
                 new Intent(getApplicationContext(), UpdateService.class),
-                PendingIntent.FLAG_CANCEL_CURRENT);
+                PendingIntent.FLAG_UPDATE_CURRENT);
 
         AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        alarmManager.cancel(pendingIntent);
 
         Calendar cal = Calendar.getInstance();
-        cal.set(Calendar.HOUR_OF_DAY, 0);
-        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.HOUR_OF_DAY, 10);
+        cal.set(Calendar.MINUTE, 50);
+        cal.set(Calendar.SECOND, 0);
 
-        alarmManager.setInexactRepeating(
+        Calendar curr_cal = Calendar.getInstance();
+        int curr_hr = curr_cal.get(Calendar.HOUR_OF_DAY);
+        int curr_min = curr_cal.get(Calendar.MINUTE);
+
+        // If it's after the alarm time, schedule for next day
+        if ( curr_hr > 10 || curr_hr == 10 && curr_min > 50) {
+            Log.i("DEBUG>>", "For next day");
+            cal.add(Calendar.DAY_OF_YEAR, 1); // add, not set!
+        }
+
+        alarmManager.setRepeating(
                 AlarmManager.RTC,
                 cal.getTimeInMillis(),
                 alarmManager.INTERVAL_DAY,
@@ -234,8 +305,8 @@ public class StartScreen extends Activity {
                 // Check if survey is available
                 Calendar curr_calendar = Calendar.getInstance();
 
-                if ( curr_calendar.getTimeInMillis() > calendar0.getTimeInMillis() &&
-                     curr_calendar.getTimeInMillis() < calendar1.getTimeInMillis()) {
+                if ( curr_calendar.getTimeInMillis() >= calendar0.getTimeInMillis() &&
+                     curr_calendar.getTimeInMillis() <= calendar1.getTimeInMillis()) {
                     accessible = true;
                 }
             }
@@ -263,12 +334,22 @@ public class StartScreen extends Activity {
             else if(name_str.equals("Day Reconstruction")) {
                 pic.setImageResource(R.drawable.day_reconstructor);
             }
+            else if(name_str.equals("Sleep")){
+                pic.setImageResource(R.drawable.sleep);
+            }
+            else {
+                pic.setImageResource(R.drawable.app);
+            }
 
             // Gray out text if not available
             boolean completed = dbHandler.isCompleted(arg0 + 1);
             if(!accessible || completed) {
                 time.setTextColor(getResources().getColor(android.R.color.darker_gray));
                 name.setTextColor(getResources().getColor(android.R.color.darker_gray));
+            }
+            else {
+                time.setTextColor(getResources().getColor(android.R.color.black));
+                name.setTextColor(getResources().getColor(android.R.color.black));
             }
 
             return arg1;

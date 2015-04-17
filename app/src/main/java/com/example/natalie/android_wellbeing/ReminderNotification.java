@@ -16,11 +16,13 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.support.v4.app.TaskStackBuilder;
+import android.util.Log;
 
-public class Notifications extends Activity {
+public class ReminderNotification extends Activity {
     private int ID = 0;
     private int iteration = 0;
     private static final int NOTIFY_ME_ID=1337;
+    SurveyDatabaseHandler dbHandler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,32 +31,25 @@ public class Notifications extends Activity {
         // Get survey ID from caller intent
         Intent caller = getIntent();
         ID = caller.getIntExtra("ID", 1);
-        iteration = caller.getIntExtra("ITERATION", 0);
 
-        long[] pattern = {500,500,500,500,500,500,500,500,500};
+        dbHandler = new SurveyDatabaseHandler(getApplicationContext());
+        String survey_name = dbHandler.getName(ID);
 
+        Intent notificationIntent = new Intent(this, Checkpoint.class);
+        notificationIntent.putExtra("ID", ID);
+        notificationIntent.setAction(String.valueOf(ID));
+        PendingIntent pendingIntent = PendingIntent.getService(this, 0, notificationIntent, 0);
+
+        Log.i("DEBUG>>>", "In notification, ID for " + survey_name + " = " + String.valueOf(ID));
         NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this)
                 .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentTitle("WellBeing Survey")
-                .setContentText("Hello World!")
+                .setContentTitle("WellBeing")
+                .setContentText("Ready to take your " + survey_name + " survey?")
+                .setDefaults(android.app.Notification.DEFAULT_LIGHTS |
+                        android.app.Notification.DEFAULT_SOUND  |
+                        android.app.Notification.DEFAULT_VIBRATE)
                 .setAutoCancel(true)
-                .setLights(Color.BLUE, 500, 500)
-                .setVibrate(pattern);
-
-        // Add intent
-        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
-        stackBuilder.addParentStack(SurveyScreen.class);
-
-        Intent intent = new Intent(this, SurveyScreen.class);
-        intent.putExtra("ID", ID);
-
-        stackBuilder.addNextIntent(intent);
-        PendingIntent resultPendingIntent =
-                stackBuilder.getPendingIntent(
-                        0,
-                        PendingIntent.FLAG_UPDATE_CURRENT
-                );
-        mBuilder.setContentIntent(resultPendingIntent);
+                .setContentIntent(pendingIntent);
 
         NotificationManager mNotificationManager =
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);

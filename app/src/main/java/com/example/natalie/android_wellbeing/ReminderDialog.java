@@ -13,6 +13,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.os.Vibrator;
+import android.util.Log;
 import android.widget.Toast;
 
 /**
@@ -25,10 +26,10 @@ public class ReminderDialog extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        Log.i("DEBUG>>>", "In reminder dialog");
         // Get survey ID from caller intent
         Intent caller = getIntent();
         ID = caller.getIntExtra("ID", 1);
-        iteration = caller.getIntExtra("ITERATION", 0);
 
         // Initialize Database
         final SurveyDatabaseHandler dbHandler = new SurveyDatabaseHandler(getApplicationContext());
@@ -52,13 +53,12 @@ public class ReminderDialog extends Activity {
                 })
                 .setNeutralButton("Okay", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
-                        Intent i = new Intent(getApplicationContext(), SurveyScreen.class);
+                        Intent i = new Intent(getApplicationContext(), Checkpoint.class);
                         i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                         i.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
                         i.putExtra("ID", ID);
 
-                        startActivity(i);
-                        dialog.cancel();
+                        startService(i);
                         finish();
 
                     }

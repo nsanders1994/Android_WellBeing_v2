@@ -2,6 +2,7 @@ package com.example.natalie.android_wellbeing;
 
 import android.app.IntentService;
 import android.content.Intent;
+import android.util.Log;
 
 /**
  * Created by Natalie on 4/10/2015.
@@ -20,15 +21,16 @@ public class NotificationService extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
-        int table_id = intent.getIntExtra("ID", 1);
-        int iteration = intent.getIntExtra("ITERATION", 0);
+        Log.i("Notification>>>", "Notification Service handled");
 
-        dbHandler.setComplete(false, table_id);
+        int id = intent.getIntExtra("ID", 1);
 
-        Intent i = new Intent(NotificationService.this, Notifications.class);
+        dbHandler = new SurveyDatabaseHandler(getApplicationContext());
+        dbHandler.setComplete(false, id);
+
+        Intent i = new Intent(NotificationService.this, ReminderNotification.class);
         i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        i.putExtra("ID", table_id);
-        i.putExtra("ITERATION", iteration);
+        i.putExtra("ID", id);
         startActivity(i);
     }
 }

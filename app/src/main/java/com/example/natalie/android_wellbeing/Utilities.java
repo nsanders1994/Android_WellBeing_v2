@@ -11,6 +11,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.parse.FindCallback;
@@ -26,6 +27,7 @@ import java.util.List;
  */
 
 public class Utilities extends Activity {
+    private boolean done = false;
 
     public void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
@@ -43,13 +45,79 @@ public class Utilities extends Activity {
 
         return str;
     }
-    /*
-    public void initialize(){
-        Parse.enableLocalDatastore(getApplicationContext());
-        Parse.initialize(getApplicationContext(),
-                         "Z6S6iux9qyLGcCsAE3vuRvhHWDwFelxzT2nSqKWc",
-                         "boXMTOaotk2HgGpxFLdNNPFw1d7WwB7c3G4nPHak");
+
+    public static void startAlarms(int id, Context context, boolean forNxtDay){
+        SurveyDatabaseHandler dbHandler = new SurveyDatabaseHandler(context);
+        final List<String> time    = dbHandler.getTimes(id);
+        final int duration         = dbHandler.getDuration(id);
+
+        for(int j = 0; j < time.size(); j++) {
+            int hr = Integer.parseInt(String.valueOf(time.get(j)).split(":")[0]);
+            int min = Integer.parseInt(String.valueOf(time.get(j)).split(":")[1]);
+
+            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+
+            Calendar cal = Calendar.getInstance();
+            cal.set(Calendar.HOUR_OF_DAY, hr);
+            cal.set(Calendar.MINUTE, min);
+            cal.set(Calendar.SECOND, 0);
+
+            for (int i = 0; i < 4; i++) {
+                // Get alarm time
+                int curr_hr = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+                int curr_min = Calendar.getInstance().get(Calendar.MINUTE);
+
+                int alarm_hr = cal.get(Calendar.HOUR_OF_DAY);
+                int alarm_min = cal.get(Calendar.MINUTE);
+
+                // If it's after the alarm time, schedule for next day
+                if (curr_hr > alarm_hr || curr_hr == alarm_hr && curr_min > alarm_min || forNxtDay) {
+                    cal.add(Calendar.DAY_OF_YEAR, 1); // add, not set!
+                }
+
+                if (i < 3) {
+                    Intent notifIntent = new Intent(context, NotificationService.class);
+                    notifIntent.putExtra("ID", id);
+
+                    Log.i("DEBUG>>>", "NOTIF:" + String.valueOf(id) + String.valueOf(j) + String.valueOf(i));
+                    PendingIntent notifPendingIntent = PendingIntent.getService(
+                            context,
+                            Integer.parseInt(String.valueOf(id) + String.valueOf(j) + String.valueOf(i)),
+                            notifIntent,
+                            PendingIntent.FLAG_CANCEL_CURRENT);
+
+                    // Set alarm for survey notification
+                    alarmManager.setRepeating(
+                            AlarmManager.RTC_WAKEUP,
+                            cal.getTimeInMillis(),
+                            alarmManager.INTERVAL_DAY,
+                            notifPendingIntent);
+                } else {
+                    Log.i("DEBUG>>>", "DIALOG:" + String.valueOf(id) + String.valueOf(j) + String.valueOf(i));
+                    Intent dialogIntent = new Intent(context, PopupService.class);
+                    dialogIntent.putExtra("ID", id);
+
+                    PendingIntent dialogPendingIntent = PendingIntent.getService(
+                            context,
+                            Integer.parseInt(String.valueOf(id) + String.valueOf(j) + String.valueOf(i)),
+                            dialogIntent,
+                            PendingIntent.FLAG_CANCEL_CURRENT);
+
+                    // Set alarm for survey diolog
+                    alarmManager.setRepeating(
+                            AlarmManager.RTC_WAKEUP,
+                            cal.getTimeInMillis(),
+                            alarmManager.INTERVAL_DAY,
+                            dialogPendingIntent);
+                }
+
+
+                cal.add(Calendar.MINUTE, duration / 4);
+            }
+        }
     }
+
+    /*
 
     public void importSurveys(){
         final SurveyDatabaseHandler dbHandler = new SurveyDatabaseHandler(getApplicationContext());

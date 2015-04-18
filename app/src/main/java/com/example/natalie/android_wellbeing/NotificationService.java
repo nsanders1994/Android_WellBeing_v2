@@ -69,24 +69,6 @@ public class NotificationService extends IntentService {
             alarmManager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP,
                     SystemClock.elapsedRealtime() + (duration/4)*60*1000, notifPendingIntent);
         }
-        /*else if(iteration == 3 && !dbHandler.isCompleted(sid)){
-            Log.i("DEBUG>>>", "Set dialog alarm for " + String.valueOf(sid));
-
-            Intent dialogIntent = new Intent(getApplicationContext(), PopupService.class);
-            dialogIntent.putExtra("ID", sid);
-
-            PendingIntent dialogPendingIntent = PendingIntent.getService(
-                    getApplicationContext(),
-                    // alarm id code is <survey id> <survey time id> <iteration of survey time>
-                    Integer.parseInt(String.valueOf(sid) + String.valueOf(tid) + String.valueOf(iteration + 1)),
-                    dialogIntent,
-                    PendingIntent.FLAG_CANCEL_CURRENT);
-
-            AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-            alarmManager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP,
-                    SystemClock.elapsedRealtime() + (duration/4)*60*1000, dialogPendingIntent);
-        }*/
-
 
         if(!dbHandler.isCompleted(sid)) {
             if(iteration < 4) {

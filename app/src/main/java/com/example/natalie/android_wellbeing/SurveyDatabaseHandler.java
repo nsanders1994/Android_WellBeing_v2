@@ -28,6 +28,7 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
     private static final String KEY_ANS_VALS    = "AnsVals";
     private static final String KEY_TSTAMPS     = "TStamps";
     private static final String KEY_VERSION     = "Version";
+    private static final String KEY_DAYS        = "Days";
 
     public SurveyDatabaseHandler(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -47,10 +48,12 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
                 + KEY_USER_ANS    + " STRING,"
                 + KEY_ANS_VALS    + " STRING,"
                 + KEY_TSTAMPS     + " STRING,"
-                + KEY_VERSION     + " INTEGER)");
+                + KEY_VERSION     + " INTEGER,"
+                + KEY_DAYS        + " STRING)");
     }
 
-    public void createSurvey(String times, int dur, String name, String ques, String ans, String types, String ansVals, int version) {
+    public void createSurvey(String times, int dur, String name, String ques, String ans,
+                             String types, String ansVals, int version, String days) {
         SQLiteDatabase db = getWritableDatabase();
         ContentValues values = new ContentValues();
 
@@ -65,6 +68,7 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
         values.put(KEY_ANS_VALS,   ansVals);
         values.put(KEY_TSTAMPS,    "empty");
         values.put(KEY_VERSION,    version);
+        values.put(KEY_DAYS,       days);
 
         db.insert(TABLE_WELLBEING,null,values);
         db.close();
@@ -158,6 +162,31 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
         return time_list;
     }
 
+    public List<Integer> getDays(int id){
+        SQLiteDatabase db = getReadableDatabase();
+        Cursor cursor = db.rawQuery(
+                "SELECT " + KEY_DAYS +
+                        " FROM " + TABLE_WELLBEING +
+                        " WHERE rowid = " + id,
+                null
+        );
+
+        cursor.moveToFirst();
+        String day_str = cursor.getString(0);
+        List<String> dayStr_list = Arrays.asList(day_str.split(","));
+        int dayCt = dayStr_list.size();
+
+        List<Integer> dayInt_list = new ArrayList<>();
+
+        for(int i = 0; i < dayCt; i++){
+            dayInt_list.add(Integer.parseInt(dayStr_list.get(i)));
+        }
+
+        cursor.close();
+        db.close();
+
+        return dayInt_list;
+    }
 
     public int getDuration(int id){
         SQLiteDatabase db = getReadableDatabase();

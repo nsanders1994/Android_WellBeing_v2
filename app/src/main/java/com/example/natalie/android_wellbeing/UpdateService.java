@@ -136,25 +136,24 @@ public class UpdateService extends IntentService {
 
 
         Log.i("DEBUG>>>", "Parse Query Starting");
-        final ParseQuery<ParseObject> query = new ParseQuery<ParseObject>("SurveySummary");
+        final ParseQuery<ParseObject> query = new ParseQuery<>("SurveySummary");
         query.whereEqualTo("Active", true);
         query.findInBackground(new FindCallback<ParseObject>() {
             public void done(List<ParseObject> all_surveys, ParseException e) {
                 if (e == null) {
-                    Log.i("DEBUG>>>", "In loop!");
-                    for (int i = 0; i < all_surveys.size(); i++) {
+                    int surveyCt = all_surveys.size();
+                    for (int i = 0; i < surveyCt; i++) {
 
-                        final int index = i + 1;
-                        final int end   = all_surveys.size();
                         ParseObject survey_listing = all_surveys.get(i);
                         final String name          = survey_listing.getString("Category");
                         final List<Object> time    = survey_listing.getList("Time");
                         final int duration         = survey_listing.getInt("surveyActiveDuration");
                         final String table_name    = survey_listing.getString("Survey");
                         final int surveyVersion    = survey_listing.getInt("Version");
+                        final List<Object> days    = survey_listing.getList("Days");
 
                         // Get list of questions and their answers
-                        ParseQuery<ParseObject> query2 = ParseQuery.getQuery(table_name);
+                        ParseQuery<ParseObject> query2 = new ParseQuery<ParseObject>(table_name);
                         query2.orderByAscending("questionId");
                         query2.findInBackground(new FindCallback<ParseObject>() {
                             public void done(List<ParseObject> survey, ParseException e) {
@@ -168,7 +167,6 @@ public class UpdateService extends IntentService {
 
                                     for (int j = 0; j < ques_ct; j++) {
                                         ParseObject curr_ques = survey.get(j);
-                                        int qID = curr_ques.getInt("questionId") - 1;
 
                                         type.add(curr_ques.getString("questionType"));
                                         ques.add(curr_ques.getString("question"));
@@ -181,7 +179,6 @@ public class UpdateService extends IntentService {
                                     String ans_str = Utilities.join(ans, "%nxt%");
                                     String ansVal_str = Utilities.join(ansVals, "%nxt%");
 
-
                                     dbHandler.createSurvey(
                                             Utilities.join(time, ","),
                                             duration,
@@ -190,92 +187,116 @@ public class UpdateService extends IntentService {
                                             ans_str,
                                             type_str,
                                             ansVal_str,
-                                            surveyVersion
+                                            surveyVersion,
+                                            Utilities.join(days, ",")
                                     );
 
+
                                     int survey_id = dbHandler.getLastRowID();
+                                    int iteration = 1;
+                                    Log.i("TIME>>>", "name = " + name + ", ID = " + String.valueOf(survey_id));
 
-                                    Log.i("DEBUG>>>", "# times = " + String.valueOf(time.size()));
-                                    for(int j = 0; j < time.size(); j++) {
-                                        int hr  = Integer.parseInt(String.valueOf(time.get(j)).split(":")[0]);
-                                        int min = Integer.parseInt(String.valueOf(time.get(j)).split(":")[1]);
+                                    AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
 
-                                        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+                                    for(int d = 0; d < days.size(); d++) {
 
-                                        int inc = 0;
-                                        for(int i = 0; i < 4; i++){
-                                            // Get alarm time
-                                            Calendar cal = Calendar.getInstance();
-                                            cal.set(Calendar.HOUR_OF_DAY, hr);
-                                            cal.set(Calendar.MINUTE, min + inc);
-                                            cal.set(Calendar.SECOND, 0);
+                                        // Set first alarm for all survey times
+                                        for(int j = 0; j < time.size(); j++) {
+                                            int hr  = Integer.parseInt(String.valueOf(time.get(j)).split(":")[0]);
+                                            int min = Integer.parseInt(String.valueOf(time.get(j)).split(":")[1]);
 
                                             // Get curr time
                                             Calendar curr_cal = Calendar.getInstance();
 
-                                            // If it's after the alarm time, schedule for next day
+                                            // Get alarm time
+                                            Calendar cal = Calendar.getInstance();
+                                            cal.set(Calendar.DAY_OF_WEEK, d);
+                                            cal.set(Calendar.HOUR_OF_DAY, hr);
+                                            cal.set(Calendar.MINUTE, min);
+                                            cal.set(Calendar.SECOND, 0);
+
+                                            String time = String.valueOf(cal.get(Calendar.HOUR_OF_DAY)) + ":" + String.valueOf(cal.get(Calendar.MINUTE));
+
+                                            // If it's after the alarm time, schedule starting alarm for next day
                                             if ( curr_cal.getTimeInMillis() > cal.getTimeInMillis()) {
+                                                Log.i("TIME>>>", "\tSurvey alarm scheduled for next week");
+                                                cal.add(Calendar.DAY_OF_YEAR, 7); // add, not set!
 
-                                                Log.i("DEBUG>>>", "Survey alarm scheduled for next day");
-                                                cal.add(Calendar.DAY_OF_YEAR, 1); // add, not set!
+                                                // Check if any of the following alarms for this active period are not past
+                                                for(int k = 1; k < 4; k++) {
+                                                    // Get alarm time
+                                                    Calendar cal2 = Calendar.getInstance();
+                                                    cal2.set(Calendar.DAY_OF_WEEK, d);
+                                                    cal2.set(Calendar.HOUR_OF_DAY, hr);
+                                                    cal2.set(Calendar.MINUTE, min + k*(duration/4));
+                                                    cal2.set(Calendar.SECOND, 0);
+
+                                                    if ( curr_cal.getTimeInMillis() < cal2.getTimeInMillis()) {
+                                                        String time2 = String.valueOf(cal2.get(Calendar.HOUR_OF_DAY) + ":" +
+                                                                String.valueOf(cal2.get(Calendar.MINUTE)));
+                                                        int iter = k + 1;
+
+                                                        Intent intent;
+                                                        if(iter != 4) {
+                                                            intent = new Intent(getApplicationContext(), NotificationService.class);
+                                                            intent.putExtra("SID", survey_id);
+                                                            intent.putExtra("tID", j);
+                                                            intent.putExtra("T_CURR", time2);
+                                                            intent.putExtra("ITER", iter);
+                                                        }
+                                                        else {
+                                                            intent = new Intent(getApplicationContext(), PopupService.class);
+                                                            intent.putExtra("SID", survey_id);
+                                                            intent.putExtra("TID", j);
+                                                            intent.putExtra("T_CURR", time2);
+                                                            intent.putExtra("ITER", iter);
+                                                        }
+
+                                                        PendingIntent notifPendingIntent2 = PendingIntent.getService(
+                                                                getApplicationContext(),
+                                                                Integer.parseInt(String.valueOf(survey_id) + String.valueOf(j) + String.valueOf(iter)), // alarm id code is <survey id> <survey time id> <iteration of survey time>
+                                                                intent,
+                                                                PendingIntent.FLAG_CANCEL_CURRENT);
+
+                                                        Log.i("TIME>>>", "Secondary Alarm for " + String.valueOf(survey_id) + " = " + cal2.getTime().toString());
+                                                        // Set alarm for survey notification
+                                                        alarmManager.set(AlarmManager.RTC_WAKEUP, cal2.getTimeInMillis(), notifPendingIntent2);
+
+
+                                                        break;
+                                                    }
+                                                }
                                             }
 
-                                            Log.i("DEBUG>>>", "Alarm time " + String.valueOf(i) +
-                                                    " = " + String.valueOf(cal.get(Calendar.HOUR)) + ":" +
-                                                    String.valueOf(cal.get(Calendar.MINUTE)));
-                                            if(i < 3) {
-                                                Intent notifIntent = new Intent(getApplicationContext(), NotificationService.class);
-                                                notifIntent.putExtra("ID", survey_id);
+                                            Log.i("TIME>>>", "Primary Alarm for " + String.valueOf(survey_id) + " = " + cal.getTime().toString());
 
-                                                Log.i("DEBUG>>>", "NOTIF:" + String.valueOf(survey_id) + String.valueOf(j) + String.valueOf(i));
-                                                PendingIntent notifPendingIntent = PendingIntent.getService(
-                                                        getApplicationContext(),
-                                                        Integer.parseInt(String.valueOf(survey_id) + String.valueOf(j) + String.valueOf(i)),
-                                                        notifIntent,
-                                                        PendingIntent.FLAG_CANCEL_CURRENT);
+                                            Intent notifIntent = new Intent(getApplicationContext(), NotificationService.class);
+                                            notifIntent.putExtra("SID", survey_id);
+                                            notifIntent.putExtra("TID", j);
+                                            notifIntent.putExtra("T_CURR", time);
+                                            notifIntent.putExtra("ITER", iteration);
 
-                                                // Set alarm for survey notification
-                                                alarmManager.setRepeating(
-                                                        AlarmManager.RTC_WAKEUP,
-                                                        cal.getTimeInMillis(),
-                                                        alarmManager.INTERVAL_DAY,
-                                                        notifPendingIntent);
-                                            }
-                                            else {
-                                                Log.i("DEBUG>>>", "DIALOG:" + String.valueOf(survey_id) + String.valueOf(j) + String.valueOf(i));
-                                                Intent dialogIntent = new Intent(getApplicationContext(), PopupService.class);
-                                                dialogIntent.putExtra("ID", survey_id);
+                                            PendingIntent notifPendingIntent = PendingIntent.getService(
+                                                    getApplicationContext(),
+                                                    Integer.parseInt(String.valueOf(survey_id) + String.valueOf(j) + String.valueOf(iteration)), // alarm id code is <survey id> <survey time id> <iteration of survey time>
+                                                    notifIntent,
+                                                    PendingIntent.FLAG_CANCEL_CURRENT);
 
-                                                PendingIntent dialogPendingIntent = PendingIntent.getService(
-                                                        getApplicationContext(),
-                                                        Integer.parseInt(String.valueOf(survey_id) + String.valueOf(j) + String.valueOf(i)),
-                                                        dialogIntent,
-                                                        PendingIntent.FLAG_CANCEL_CURRENT);
-
-                                                // Set alarm for survey diolog
-                                                alarmManager.setRepeating(
-                                                        AlarmManager.RTC_WAKEUP,
-                                                        cal.getTimeInMillis(),
-                                                        alarmManager.INTERVAL_DAY,
-                                                        dialogPendingIntent);
-                                            }
-
-
-                                            inc += duration/4;
+                                            // Set alarm for survey notification
+                                            alarmManager.setRepeating(
+                                                    AlarmManager.RTC_WAKEUP,
+                                                    cal.getTimeInMillis(),
+                                                    7*alarmManager.INTERVAL_DAY,
+                                                    notifPendingIntent);
                                         }
                                     }
-
-                                }
-
-                                if(index == end){
-                                    Log.i("DEBUG>>>", "Setting Preferences: importFinished == true");
-                                    SharedPreferences.Editor edit = prefs.edit();
-                                    edit.putBoolean(getString(R.string.importActive), Boolean.FALSE);
-                                    edit.commit();
                                 }
                             }
                         });
                     }
+                    SharedPreferences.Editor edit = prefs.edit();
+                    edit.putBoolean(getString(R.string.prev_started), Boolean.TRUE);
+                    edit.commit();
                 }
                 else {
                     Log.i("DEBUG>>>", "Parse initial survey request failed");

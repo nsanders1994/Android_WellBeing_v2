@@ -1,5 +1,6 @@
 package com.example.natalie.android_wellbeing;
 
+import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.IntentFilter;
 import android.media.Image;
@@ -49,14 +50,6 @@ public class StartScreen extends Activity {
     }
 
     @Override
-    protected void onPause() {
-        // TODO Auto-generated method stub
-        super.onPause();
-        //unregister our receiver
-        //this.unregisterReceiver(this.receiver);
-    }
-
-    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         // Set start view
@@ -86,12 +79,14 @@ public class StartScreen extends Activity {
         }
 
         // Start background service to check for updated popup times
-        // TODO start_UpdatesService();
+        //start_UpdatesService();
 
         startListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
+
+                //checkForUpdate();
 
                 if(survey_ids.size() == 0) {
                     survey_ids = dbHandler.getSurveyIDs();
@@ -109,6 +104,36 @@ public class StartScreen extends Activity {
         });
     }
 
+    public void checkForUpdate(){
+        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+        boolean importActive = prefs.getBoolean(getString(R.string.importActive), false);
+        boolean update = prefs.getBoolean(getString(R.string.update), false);
+
+        if(importActive){
+            ProgressDialog progress = new ProgressDialog(this);
+            progress.setTitle("Update in Progress");
+            progress.setMessage("Please, wait...");
+            progress.show();
+
+            while(prefs.getBoolean(getString(R.string.importActive), false)){
+                //wait for import to finish
+            }
+
+            progress.dismiss();
+        }
+
+        if(update){
+            SharedPreferences.Editor edit1 = prefs.edit();
+            edit1.putBoolean(getString(R.string.update), Boolean.FALSE);
+            edit1.commit();
+
+            startListView.setAdapter(startListAdapter);
+            startListAdapter.notifyDataSetChanged();
+            //startListAdapter.notifyDataSetInvalidated();
+
+        }
+    }
+
     public void start_UpdatesService() {
 
         PendingIntent pendingIntent = PendingIntent.getService(
@@ -121,8 +146,8 @@ public class StartScreen extends Activity {
         alarmManager.cancel(pendingIntent);
 
         Calendar cal = Calendar.getInstance();
-        cal.set(Calendar.HOUR_OF_DAY, 10);
-        cal.set(Calendar.MINUTE, 50);
+        cal.set(Calendar.HOUR_OF_DAY, 1);
+        cal.set(Calendar.MINUTE, 25);
         cal.set(Calendar.SECOND, 0);
 
         Calendar curr_cal = Calendar.getInstance();

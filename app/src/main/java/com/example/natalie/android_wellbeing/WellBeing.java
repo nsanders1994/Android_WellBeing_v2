@@ -43,7 +43,7 @@ public class WellBeing extends Application {
         boolean previouslyStarted = prefs.getBoolean(getString(R.string.prev_started), false);
 
         if(!previouslyStarted) {
-            final ParseQuery<ParseObject> query = new ParseQuery<ParseObject>("SurveySummary");
+            final ParseQuery<ParseObject> query = new ParseQuery<>("SurveySummary");
             query.whereEqualTo("Active", true);
             query.findInBackground(new FindCallback<ParseObject>() {
                 public void done(List<ParseObject> all_surveys, ParseException e) {
@@ -97,8 +97,6 @@ public class WellBeing extends Application {
                                             surveyVersion,
                                             Utilities.join(days, ",")
                                     );
-
-
 
                                     int survey_id = dbHandler.getLastRowID();
                                     int iteration = 1;

@@ -1,11 +1,19 @@
 package com.example.natalie.android_wellbeing;
 
 import android.app.AlarmManager;
+import android.app.AlertDialog;
 import android.app.IntentService;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.SystemClock;
+import android.os.Vibrator;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import java.util.Calendar;
@@ -28,7 +36,7 @@ public class NotificationService extends IntentService {
     @Override
     protected void onHandleIntent(Intent intent) {
 
-        int sid = intent.getIntExtra("SID", 1);
+        final int sid = intent.getIntExtra("SID", 1);
         int tid = intent.getIntExtra("TID", 1);
         int iteration = intent.getIntExtra("ITER", 1);
         String tCurr = intent.getStringExtra("T_CURR");
@@ -72,11 +80,31 @@ public class NotificationService extends IntentService {
 
         if(!dbHandler.isCompleted(sid)) {
             if(iteration < 4) {
-                Log.i("DEBUG>>>", "Go to Notification for " + String.valueOf(sid));
-                Intent i = new Intent(NotificationService.this, ReminderNotification.class);
-                i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                i.putExtra("ID", sid);
-                startActivity(i);
+                String survey_name = dbHandler.getName(sid);
+
+                Intent notificationIntent = new Intent(this, Checkpoint.class);
+                notificationIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                notificationIntent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+                notificationIntent.putExtra("ID", sid);
+                notificationIntent.setAction(String.valueOf(sid));
+                PendingIntent pendingIntent = PendingIntent.getService(this, 0, notificationIntent, 0);
+
+                Log.i("DEBUG>>>", "In notification, ID for " + survey_name + " = " + String.valueOf(sid));
+                NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this)
+                        .setSmallIcon(R.mipmap.ic_launcher)
+                        .setContentTitle("WellBeing")
+                        .setContentText("Ready to take your " + survey_name + " survey?")
+                        .setDefaults(android.app.Notification.DEFAULT_LIGHTS |
+                                android.app.Notification.DEFAULT_SOUND  |
+                                android.app.Notification.DEFAULT_VIBRATE)
+                        .setAutoCancel(true)
+                        .setContentIntent(pendingIntent);
+
+                NotificationManager mNotificationManager =
+                        (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
+                // notificationID allows you to update the notification later on.
+                mNotificationManager.notify(sid, mBuilder.build());
             }
             else if(iteration == 4){
                 Log.i("DEBUG>>>", "Go to Dialog for " + String.valueOf(sid));

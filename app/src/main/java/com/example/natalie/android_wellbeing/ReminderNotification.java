@@ -29,6 +29,8 @@ public class ReminderNotification extends Activity {
         String survey_name = dbHandler.getName(ID);
 
         Intent notificationIntent = new Intent(this, Checkpoint.class);
+        notificationIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        notificationIntent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
         notificationIntent.putExtra("ID", ID);
         notificationIntent.setAction(String.valueOf(ID));
         PendingIntent pendingIntent = PendingIntent.getService(this, 0, notificationIntent, 0);

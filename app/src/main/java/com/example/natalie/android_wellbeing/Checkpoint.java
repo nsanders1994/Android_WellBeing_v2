@@ -1,7 +1,9 @@
 package com.example.natalie.android_wellbeing;
 
+import android.app.ActivityManager;
 import android.app.IntentService;
 import android.app.Service;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.os.IBinder;
 import android.util.Log;
@@ -60,8 +62,9 @@ public class Checkpoint extends Service {
         }
 
         Log.i("DEBUG>>>", "NAME = " + dbHandler.getName(id));
+        boolean completed = dbHandler.isCompleted(id);
 
-        if(valid) {
+        if(valid && !completed) {
             Intent surveyIntent = new Intent(Checkpoint.this, SurveyScreen.class);
             surveyIntent.putExtra("ID", id);
             surveyIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);

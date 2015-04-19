@@ -12,6 +12,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Log;
 
 public class SurveyDatabaseHandler extends SQLiteOpenHelper {
     private static final int DATABASE_VERSION   = 4;
@@ -153,6 +154,7 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
         );
 
         cursor.moveToFirst();
+        Log.i("SYNC>>>", "In database, id = " + String.valueOf(id));
         String time_str = cursor.getString(0);
         List<String> time_list = Arrays.asList(time_str.split(","));
 
@@ -170,6 +172,7 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
                         " WHERE rowid = " + id,
                 null
         );
+        Log.i("SYNC>>>", "In database, id = " + String.valueOf(id));
 
         cursor.moveToFirst();
         String day_str = cursor.getString(0);

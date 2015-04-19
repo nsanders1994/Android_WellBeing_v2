@@ -19,6 +19,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
@@ -35,11 +36,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public class StartScreen extends Activity {
+public class StartScreen extends Activity implements UpdateResultReceiver.Receiver{
     SurveyDatabaseHandler dbHandler;
     List<Integer> survey_ids = new ArrayList<>();
     ListView startListView;
     StartListAdapter startListAdapter;
+    int surveysImported = 0;
 
 
 
@@ -50,24 +52,64 @@ public class StartScreen extends Activity {
     }
 
     @Override
+    public void onReceiveResult(int resultCode, Bundle resultData) {
+        switch (resultCode) {
+            case UpdateService.STATUS_RUNNING:
+                setProgressBarIndeterminateVisibility(true);
+                break;
+
+            case UpdateService.STATUS_FINISHED:
+                Log.i("SYNC>>>", "In Receiver");
+                /* Hide progress & extract result from bundle */
+                int ct = resultData.getInt("SURVEYCT", 0);
+                surveysImported++;
+                Log.i("SYNC>>>", "ct = " + String.valueOf(ct));
+                Log.i("SYNC>>>", "surveysIymported = " + String.valueOf(surveysImported));
+
+                if(ct == surveysImported){
+                    Log.i("SYNC>>>", "Refreshing screen");
+                    setProgressBarIndeterminateVisibility(false);
+                    Log.i("SYNC>>>", "survey ids = " + dbHandler.getSurveyIDs().toString());
+
+                /* Update ListView with result */
+                    survey_ids = new ArrayList<>();
+                    startListAdapter.notifyDataSetInvalidated();
+                    startListAdapter.notifyDataSetChanged();
+                    //startListAdapter = new StartListAdapter();//ArrayAdapter(StartScreen.this, android.R.layout.simple_list_item_2, results);
+                    //startListView.setAdapter(startListAdapter);
+                }
+
+                break;
+
+            case UpdateService.STATUS_ERROR:
+                /* Handle the error */
+                String error = resultData.getString(Intent.EXTRA_TEXT);
+                Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+                break;
+        }
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Set start view
         setContentView(R.layout.activity_start_screen);
 
-        dbHandler = new SurveyDatabaseHandler(getApplicationContext());
+        // Start Update Service
+        UpdateResultReceiver mReceiver = new UpdateResultReceiver(new Handler());
+        mReceiver.setReceiver(this);
+        Intent updateIntent = new Intent(Intent.ACTION_SYNC, null, this, UpdateService.class);
 
+        // Send optional extras to Download IntentService
+        updateIntent.putExtra("receiver", mReceiver);
+        updateIntent.putExtra("requestId", 101);
+
+        start_UpdatesService(updateIntent);
+
+        // Fill ListView
+        dbHandler        = new SurveyDatabaseHandler(getApplicationContext());
         startListView    = (ListView) findViewById(R.id.listView);
         startListAdapter = new StartListAdapter();
         startListView.setAdapter(startListAdapter);
-
-        Intent caller = getIntent();
-        boolean makeToast = caller.getBooleanExtra("TOAST", false);
-
-        // If start screen was called from notification/dialog because survey expired
-        if(makeToast) {
-            Toast.makeText(getApplicationContext(), "The survey requested has already expired", Toast.LENGTH_SHORT);
-        }
 
         // If app was just installed get all surveys from Parse and store in database
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
@@ -77,9 +119,6 @@ public class StartScreen extends Activity {
             Intent intent = new Intent(StartScreen.this, EmailDialog.class);
             startActivity(intent);
         }
-
-        // Start background service to check for updated popup times
-        //start_UpdatesService();
 
         startListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
@@ -104,59 +143,26 @@ public class StartScreen extends Activity {
         });
     }
 
-    public void checkForUpdate(){
-        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-        boolean importActive = prefs.getBoolean(getString(R.string.importActive), false);
-        boolean update = prefs.getBoolean(getString(R.string.update), false);
-
-        if(importActive){
-            ProgressDialog progress = new ProgressDialog(this);
-            progress.setTitle("Update in Progress");
-            progress.setMessage("Please, wait...");
-            progress.show();
-
-            while(prefs.getBoolean(getString(R.string.importActive), false)){
-                //wait for import to finish
-            }
-
-            progress.dismiss();
-        }
-
-        if(update){
-            SharedPreferences.Editor edit1 = prefs.edit();
-            edit1.putBoolean(getString(R.string.update), Boolean.FALSE);
-            edit1.commit();
-
-            startListView.setAdapter(startListAdapter);
-            startListAdapter.notifyDataSetChanged();
-            //startListAdapter.notifyDataSetInvalidated();
-
-        }
-    }
-
-    public void start_UpdatesService() {
+    public void start_UpdatesService(Intent intent) {
 
         PendingIntent pendingIntent = PendingIntent.getService(
                 getApplicationContext(),
                 1,
-                new Intent(getApplicationContext(), UpdateService.class),
+                intent,
                 PendingIntent.FLAG_UPDATE_CURRENT);
 
         AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
         alarmManager.cancel(pendingIntent);
 
         Calendar cal = Calendar.getInstance();
-        cal.set(Calendar.HOUR_OF_DAY, 1);
-        cal.set(Calendar.MINUTE, 25);
+        cal.set(Calendar.HOUR_OF_DAY, 4);
+        cal.set(Calendar.MINUTE, 9);
         cal.set(Calendar.SECOND, 0);
 
         Calendar curr_cal = Calendar.getInstance();
-        int curr_hr = curr_cal.get(Calendar.HOUR_OF_DAY);
-        int curr_min = curr_cal.get(Calendar.MINUTE);
 
         // If it's after the alarm time, schedule for next day
-        if ( curr_hr > 10 || curr_hr == 10 && curr_min > 50) {
-            Log.i("DEBUG>>", "For next day");
+        if ( curr_cal.getTimeInMillis() > cal.getTimeInMillis()) {
             cal.add(Calendar.DAY_OF_YEAR, 1); // add, not set!
         }
 
@@ -185,6 +191,8 @@ public class StartScreen extends Activity {
 
         @Override
         public View getView(int arg0, View arg1, ViewGroup arg2) {
+            Log.i("SYNC>>>", "in getView, surveyCt = " + String.valueOf(dbHandler.getSurveyCount()));
+            Log.i("SYNC>>>", "in getView, ids = " + String.valueOf(dbHandler.getSurveyIDs()));
             if(arg1==null)
             {
                 LayoutInflater inflater = (LayoutInflater) StartScreen.this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
@@ -245,7 +253,7 @@ public class StartScreen extends Activity {
                 String t0    = String.valueOf(hr0) + ":" +
                                ("00" + min0).substring(String.valueOf(min0).length()) + " " +
                                zone0;
-
+                Log.i("SYNC>>>", "arg0 + 1 = " + String.valueOf(arg0+1));
                 // Calculate survey closing time
                 int duration = dbHandler.getDuration(arg0 + 1);
 
@@ -318,15 +326,14 @@ public class StartScreen extends Activity {
         int dayCt  = days.size();
         Boolean isValid = false;
 
-        for(int d = 0; d < dayCt; d++){
-            int currDay = days.get(d) + 1;
+        int currDay = Calendar.getInstance().get(Calendar.DAY_OF_WEEK);
+        if(days.contains(currDay - 1)){
             for(int i = 0; i < timeCt; i++) {
                 // Calculate survey start time
-                int hr0  = Integer.parseInt(times.get(i).split(":")[0]);
+                int hr0 = Integer.parseInt(times.get(i).split(":")[0]);
                 int min0 = Integer.parseInt(times.get(i).split(":")[1]);
 
                 Calendar calendar0 = Calendar.getInstance();
-                calendar0.set(Calendar.DAY_OF_WEEK, currDay);
                 calendar0.set(Calendar.HOUR_OF_DAY, hr0);
                 calendar0.set(Calendar.MINUTE, min0);
                 calendar0.set(Calendar.SECOND, 0);
@@ -335,7 +342,6 @@ public class StartScreen extends Activity {
                 int duration = dbHandler.getDuration(id);
 
                 Calendar calendar1 = Calendar.getInstance();
-                calendar1.set(Calendar.DAY_OF_WEEK, currDay);
                 calendar1.set(Calendar.HOUR_OF_DAY, hr0);
                 calendar1.set(Calendar.MINUTE, min0 + duration);
                 calendar0.set(Calendar.SECOND, 0);
@@ -344,12 +350,9 @@ public class StartScreen extends Activity {
                 boolean completed = dbHandler.isCompleted(id);
                 Calendar curr_calendar = Calendar.getInstance();
 
-                Log.i("DEBUG>>>>> ","Completed = " + (completed ? "True" : "False"));
-                Log.i("TIME>>>", "Name = " + dbHandler.getName(id));
-                Log.i("TIME>>>", "Begin = " + calendar0.getTime().toString() + " Current = " + curr_calendar.getTime().toString() + " End = " + calendar1.getTime().toString());
-                if ( !completed &&
-                     curr_calendar.getTimeInMillis() >= calendar0.getTimeInMillis() &&
-                     curr_calendar.getTimeInMillis() <= calendar1.getTimeInMillis()) {
+                if (!completed &&
+                        curr_calendar.getTimeInMillis() >= calendar0.getTimeInMillis() &&
+                        curr_calendar.getTimeInMillis() <= calendar1.getTimeInMillis()) {
 
                     isValid = true;
                 }

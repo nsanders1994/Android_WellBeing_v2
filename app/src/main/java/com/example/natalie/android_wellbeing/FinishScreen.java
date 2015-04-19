@@ -66,8 +66,6 @@ public class FinishScreen extends Activity {
 
                 // Submit survey to parse website
                 sendToParse();
-                //cancelAlarms();
-                //resetAlarms();
 
                 // Set survey to completed
                 dbHandler.setComplete(true, id);
@@ -153,97 +151,6 @@ public class FinishScreen extends Activity {
                 } catch(InterruptedException ex) {
                     Thread.currentThread().interrupt();
                 }
-            }
-        }
-    }
-
-    public void cancelAlarms() {
-        // Cancel remaining alarms for this time
-        int curr_surveyTimeCt = dbHandler.getTimes(id).size();
-        for(int k = 0; k < curr_surveyTimeCt; k++){
-            // Cancel all further alarms for this survey time
-            for(int j = 0; j < 4; j++){
-                Intent dialogIntent = new Intent(getApplicationContext(), PopupService.class);
-                dialogIntent.putExtra("ID", id);
-
-                Intent notifIntent = new Intent(getApplicationContext(), NotificationService.class);
-                notifIntent.putExtra("ID", id);
-
-                PendingIntent dialogPendingIntent = PendingIntent.getService(
-                        getApplicationContext(),
-                        Integer.parseInt(String.valueOf(id) + String.valueOf(k) + String.valueOf(j)),
-                        dialogIntent,
-                        PendingIntent.FLAG_CANCEL_CURRENT);
-
-                PendingIntent notifPendingIntent = PendingIntent.getService(
-                        getApplicationContext(),
-                        Integer.parseInt(String.valueOf(id) + String.valueOf(k) + String.valueOf(j)),
-                        notifIntent,
-                        PendingIntent.FLAG_CANCEL_CURRENT);
-
-                // Cancel alarms
-                try {
-                    alarmManager.cancel(dialogPendingIntent);
-                    alarmManager.cancel(notifPendingIntent);
-                } catch (Exception e) {
-                    Log.e("ERROR>>> ", "AlarmManager update was not canceled. " + e.toString());
-                }
-            }
-        }
-    }
-
-    public void resetAlarms() {
-        List<String> times = dbHandler.getTimes(id);
-        int duration = dbHandler.getDuration(id);
-
-        for (int j = 0; j < times.size(); j++) {
-            int hr = Integer.parseInt(String.valueOf(times.get(j)).split(":")[0]);
-            int min = Integer.parseInt(String.valueOf(times.get(j)).split(":")[1]);
-
-            Calendar cal = Calendar.getInstance();
-            cal.set(Calendar.HOUR_OF_DAY, hr);
-            cal.set(Calendar.MINUTE, min);
-            cal.set(Calendar.SECOND, 0);
-            cal.add(Calendar.DAY_OF_YEAR, 1); // add, not set!
-
-            for (int i = 0; i < 4; i++) {
-                if (i < 3) {
-                    Intent notifIntent = new Intent(getApplicationContext(), NotificationService.class);
-                    notifIntent.putExtra("ID", id);
-
-                    PendingIntent notifPendingIntent = PendingIntent.getService(
-                            getApplicationContext(),
-                            Integer.parseInt(String.valueOf(id) + String.valueOf(j) + String.valueOf(i)),
-                            notifIntent,
-                            PendingIntent.FLAG_CANCEL_CURRENT);
-
-                    // Set alarm for survey notification
-                    alarmManager.setRepeating(
-                            AlarmManager.RTC_WAKEUP,
-                            cal.getTimeInMillis(),
-                            alarmManager.INTERVAL_DAY,
-                            notifPendingIntent);
-                } else {
-                    Intent dialogIntent = new Intent(getApplicationContext(), PopupService.class);
-                    dialogIntent.putExtra("ID", id);
-
-                    PendingIntent dialogPendingIntent = PendingIntent.getService(
-                            getApplicationContext(),
-                            Integer.parseInt(String.valueOf(id) + String.valueOf(j) + String.valueOf(i)),
-                            dialogIntent,
-                            PendingIntent.FLAG_CANCEL_CURRENT);
-
-                    // Set alarm for survey diolog
-                    alarmManager.setRepeating(
-                            AlarmManager.RTC_WAKEUP,
-                            cal.getTimeInMillis(),
-                            alarmManager.INTERVAL_DAY,
-                            dialogPendingIntent);
-                }
-
-                Log.i("DEBUG>>>", "Alarm reset for " + cal.getTime().toString());
-
-                cal.add(Calendar.MINUTE, duration / 4);
             }
         }
     }

@@ -141,21 +141,24 @@ public class WellBeing extends Application {
                                                     cal2.set(Calendar.MINUTE, min + k*(duration/4));
                                                     cal2.set(Calendar.SECOND, 0);
 
+                                                    // If there is an iteration that isn't past the current time, schedule alarm
                                                     if ( curr_cal.getTimeInMillis() < cal2.getTimeInMillis()) {
-                                                        String time2 = String.valueOf(cal2.get(Calendar.HOUR_OF_DAY) + ":" +
-                                                                String.valueOf(cal2.get(Calendar.MINUTE)));
                                                         int iter = k + 1;
+                                                        String partID = String.valueOf(survey_id) + // survey id
+                                                                        String.valueOf(d) +         // day
+                                                                        String.valueOf(j);          // time
+
+                                                        int intentID = Integer.parseInt(partID + String.valueOf(iter));
 
                                                         Intent intent;
                                                         intent = new Intent(getApplicationContext(), NotificationService.class);
-                                                        intent.putExtra("SID", survey_id);
-                                                        intent.putExtra("tID", j);
-                                                        intent.putExtra("T_CURR", time2);
+                                                        intent.putExtra("ID", survey_id);
+                                                        intent.putExtra("PART_ID", partID);
                                                         intent.putExtra("ITER", iter);
 
                                                         PendingIntent notifPendingIntent2 = PendingIntent.getService(
                                                                 getApplicationContext(),
-                                                                Integer.parseInt(String.valueOf(survey_id) + String.valueOf(j) + String.valueOf(iter)), // alarm id code is <survey id> <survey time id> <iteration of survey time>
+                                                                intentID,
                                                                 intent,
                                                                 PendingIntent.FLAG_CANCEL_CURRENT);
 
@@ -171,15 +174,17 @@ public class WellBeing extends Application {
 
                                             Log.i("TIME>>>", "Primary Alarm for " + String.valueOf(survey_id) + " = " + cal.getTime().toString());
 
+                                            String partID = String.valueOf(d) + String.valueOf(survey_id) + String.valueOf(j);
+                                            int intentID  = Integer.parseInt(partID + "1");
+
                                             Intent notifIntent = new Intent(getApplicationContext(), NotificationService.class);
-                                            notifIntent.putExtra("SID", survey_id);
-                                            notifIntent.putExtra("TID", j);
-                                            notifIntent.putExtra("T_CURR", timeStr);
-                                            notifIntent.putExtra("ITER", iteration);
+                                            notifIntent.putExtra("ID", survey_id);
+                                            notifIntent.putExtra("PART_ID", partID);
+                                            notifIntent.putExtra("ITER", 1);
 
                                             PendingIntent notifPendingIntent = PendingIntent.getService(
                                                     getApplicationContext(),
-                                                    Integer.parseInt(String.valueOf(survey_id) + String.valueOf(j) + String.valueOf(iteration)), // alarm id code is <survey id> <survey time id> <iteration of survey time>
+                                                    intentID,
                                                     notifIntent,
                                                     PendingIntent.FLAG_CANCEL_CURRENT);
 

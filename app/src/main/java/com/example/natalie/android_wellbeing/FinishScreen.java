@@ -35,6 +35,7 @@ public class FinishScreen extends Activity {
     int                   version;
     SurveyDatabaseHandler dbHandler;
     AlarmManager          alarmManager;
+    long                  lastTouch;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,6 +43,8 @@ public class FinishScreen extends Activity {
         dbHandler = new SurveyDatabaseHandler(getApplicationContext());
         alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
         setContentView(R.layout.activity_finish_screen);
+
+        lastTouch = Calendar.getInstance().getTimeInMillis();
 
         final Button submitBttn = (Button) findViewById(R.id.bttnNext);
         final Button prevBttn   = (Button) findViewById(R.id.bttnBack);
@@ -61,51 +64,84 @@ public class FinishScreen extends Activity {
         submitBttn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Toast.makeText(getApplicationContext(), "The survey has been submitted.", Toast.LENGTH_SHORT).show();
-                back_valid = false;
+                if(checkSurveyActive()) {
 
-                // Submit survey to parse website
-                sendToParse();
+                    Toast.makeText(getApplicationContext(), "The survey has been submitted.", Toast.LENGTH_SHORT).show();
+                    back_valid = false;
 
-                // Set survey to completed
-                dbHandler.setComplete(true, id);
+                    final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+                    boolean emailStored = prefs.getBoolean(getString(R.string.emailStored), false);
 
-                // Clear answer list
-                dbHandler.storeAnswers("empty", id);
-                dbHandler.storeTStamps("empty", id);
+                    if(!emailStored) {
+                        Intent intent = new Intent(FinishScreen.this, EmailDialog.class);
+                        startActivity(intent);
+                    }
 
-                // Return to home screen
-                Intent intent = new Intent(FinishScreen.this, StartScreen.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                startActivity(intent);
+                    // Submit survey to parse website
+                    sendToParse();
+
+                    // Set survey to completed
+                    dbHandler.setComplete(true, id);
+
+                    // Clear answer list
+                    dbHandler.storeAnswers("empty", id);
+                    dbHandler.storeTStamps("empty", id);
+
+                    // Return to home screen
+                    Intent intent = new Intent(FinishScreen.this, StartScreen.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                    startActivity(intent);
+                }
+                else{
+                    Toast.makeText(getApplicationContext(), "Survey no longer active.", Toast.LENGTH_SHORT).show();
+                    dbHandler.storeAnswers("empty", id);
+                    dbHandler.storeTStamps("empty", id);
+
+                    Intent intent = new Intent(FinishScreen.this, StartScreen.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                    startActivity(intent);
+                }
             }
         });
 
         prevBttn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(FinishScreen.this, SurveyScreen.class);
+                if(checkSurveyActive()){
+                    Intent intent = new Intent(FinishScreen.this, SurveyScreen.class);
 
-                // Convert to object list in order to join by delimiter
-                List<Object> temp1 = new ArrayList<Object>();
-                List<Object> temp2 = new ArrayList<Object>();
+                    // Convert to object list in order to join by delimiter
+                    List<Object> temp1 = new ArrayList<Object>();
+                    List<Object> temp2 = new ArrayList<Object>();
 
-                temp1.addAll(ans);
-                temp2.addAll(tstamp);
+                    temp1.addAll(ans);
+                    temp2.addAll(tstamp);
 
-                // Store answers and timestamps
-                dbHandler.storeAnswers(Utilities.join(temp1, ","), id);
-                dbHandler.storeTStamps(Utilities.join(temp2, ","), id);
-                intent.putExtra("ID", id);
+                    // Store answers and timestamps
+                    dbHandler.storeAnswers(Utilities.join(temp1, ","), id);
+                    dbHandler.storeTStamps(Utilities.join(temp2, ","), id);
+                    intent.putExtra("ID", id);
 
-                setResult(3, intent);
-                finish();
+                    setResult(3, intent);
+                    finish();
+                }
+                else{
+                    Toast.makeText(getApplicationContext(), "Survey no longer active.", Toast.LENGTH_SHORT).show();
+                    dbHandler.storeAnswers("empty", id);
+                    dbHandler.storeTStamps("empty", id);
+
+                    Intent intent = new Intent(FinishScreen.this, StartScreen.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                    startActivity(intent);
+                }
             }
         });
     }
 
     @Override
     public void onBackPressed() {
+        checkSurveyActive();
+
         Intent intent = new Intent(FinishScreen.this, SurveyScreen.class);
 
         // Convert to object list in order to join by delimiter
@@ -151,6 +187,29 @@ public class FinishScreen extends Activity {
                 } catch(InterruptedException ex) {
                     Thread.currentThread().interrupt();
                 }
+            }
+        }
+    }
+
+    public boolean checkSurveyActive(){
+        SurveyDatabaseHandler dbHandler = new SurveyDatabaseHandler(getApplicationContext());
+        long curr_time = Calendar.getInstance().getTimeInMillis();
+        long t_diff = curr_time - lastTouch;
+
+        if(Utilities.validTime(getApplicationContext(), id)){
+            Log.i("TIME>>>", "valid time");
+            lastTouch = curr_time;
+            return true;
+        }
+        else{
+            if((t_diff/1000)/60 <= 1){
+                Log.i("TIME>>>", "less than 5 minutes inactive");
+                lastTouch = curr_time;
+                return true;
+            }
+            else{
+                Log.i("TIME>>>", "inactive");
+                return false;
             }
         }
     }

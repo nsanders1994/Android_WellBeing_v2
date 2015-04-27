@@ -5,17 +5,31 @@ import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.ResultReceiver;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.util.Calendar;
 import java.util.List;
+import java.util.Random;
 
 /**
  * Created by Natalie on 12/17/2014.
  */
 public class OnBoot extends BroadcastReceiver {
+    public static final int STATUS_BOOT = 3;
+
     @Override
     public void onReceive(Context context, Intent intent) {
+
+        //Toast.makeText(context, "Rebooting Wellbeing", Toast.LENGTH_SHORT).show();
+
+        //final ResultReceiver receiver = intent.getParcelableExtra("receiver");
+        //receiver.send(STATUS_BOOT, Bundle.EMPTY);
+
+        start_UpdatesService(context);
 
         // Retrieve number of surveys from database
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
@@ -26,7 +40,7 @@ public class OnBoot extends BroadcastReceiver {
         for (int k = 0; k < survey_ids.size(); k++) {
 
             int survey_id = survey_ids.get(k);
-            List<String> times = dbHandler.getQuesTypes(survey_id);
+            List<String> times = dbHandler.getTimes(survey_id);
             List<Integer> days = dbHandler.getDays(survey_id);
             int dayCt = days.size();
             int timeCt = times.size();
@@ -48,8 +62,6 @@ public class OnBoot extends BroadcastReceiver {
                     cal.set(Calendar.HOUR_OF_DAY, hr);
                     cal.set(Calendar.MINUTE, min);
                     cal.set(Calendar.SECOND, 0);
-
-                    String timeStr = String.valueOf(cal.get(Calendar.HOUR_OF_DAY)) + ":" + String.valueOf(cal.get(Calendar.MINUTE));
 
                     // If it's after the alarm time, schedule starting alarm for next day
                     if ( curr_cal.getTimeInMillis() > cal.getTimeInMillis()) {
@@ -120,5 +132,48 @@ public class OnBoot extends BroadcastReceiver {
                 }
             }
         }
+    }
+
+    public void start_UpdatesService(Context context) {
+        Intent serviceIntent = new Intent(context, UpdateService.class);
+        serviceIntent.putExtra("FROM_BOOT", true);
+
+        PendingIntent pendingIntent = PendingIntent.getService(
+                context,
+                18,
+                serviceIntent,
+                PendingIntent.FLAG_CANCEL_CURRENT);
+
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        alarmManager.cancel(pendingIntent);
+
+        // Get random time
+        Random rand = new Random();
+
+        // nextInt is normally exclusive of the top value,
+        // so add 1 to make it inclusive
+        int randomHr  = rand.nextInt((4) + 1);
+        int randomMin = rand.nextInt((59) + 1);
+        int randomSec = rand.nextInt((59) + 1);
+
+        Log.i("RANDOM>>>", String.valueOf(randomHr) + ":" + String.valueOf(randomMin) + ":" + String.valueOf(randomSec));
+
+        Calendar cal = Calendar.getInstance();
+        cal.set(Calendar.HOUR_OF_DAY, randomHr);
+        cal.set(Calendar.MINUTE, randomMin);
+        cal.set(Calendar.SECOND, randomSec);
+
+        Calendar curr_cal = Calendar.getInstance();
+
+        // If it's after the alarm time, schedule for next day
+        if ( curr_cal.getTimeInMillis() > cal.getTimeInMillis()) {
+            cal.add(Calendar.DAY_OF_YEAR, 1); // add, not set!
+        }
+
+        alarmManager.setRepeating(
+                AlarmManager.RTC,
+                cal.getTimeInMillis(),
+                alarmManager.INTERVAL_DAY,
+                pendingIntent);
     }
 }

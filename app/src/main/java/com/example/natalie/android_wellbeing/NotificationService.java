@@ -76,6 +76,7 @@ public class NotificationService extends IntentService {
                     SystemClock.elapsedRealtime() + (duration/4)*60*1000, notifPendingIntent);
         }
 
+        // Show current notification/dialog
         if(!dbHandler.isCompleted(ID)) {
             if(iteration < 4) {
 

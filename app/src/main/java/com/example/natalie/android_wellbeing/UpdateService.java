@@ -6,10 +6,13 @@ import java.util.List;
 
 import android.app.AlarmManager;
 import android.app.IntentService;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -31,78 +34,63 @@ public class UpdateService extends IntentService {
     public static final int STATUS_RUNNING = 0;
     public static final int STATUS_FINISHED = 1;
     public static final int STATUS_ERROR = 2;
+    public ResultReceiver receiver;
     Intent intent;
     Bundle bundle = new Bundle();
-
 
     public UpdateService() {
         super("Service");
     }
 
     @Override
-    public void onCreate() {
-        super.onCreate();
-        //broadcaster = LocalBroadcastManager.getInstance(this);
-
-    }
-
-    /*@Override
     protected void onHandleIntent(Intent intent) {
-        handler.removeCallbacks(sendUpdatesToUI);
-        handler.post(sendUpdatesToUI);//postDelayed(sendUpdatesToUI, 1000); // 1 second
-    }
 
-    private Runnable sendUpdatesToUI = new Runnable() {
-        public void run() {
-            UpdateUI();
+        final boolean from_boot = intent.getBooleanExtra("FROM_BOOT", false);
+
+        if(!from_boot){
+            receiver = intent.getParcelableExtra("receiver");
         }
-    };
 
-    @Override
-    public IBinder onBind(Intent intent) {
-        return null;
-    }
-
-    @Override
-    public void onDestroy() {
-        handler.removeCallbacks(sendUpdatesToUI);
-        super.onDestroy();
-    }*/
-
-    @Override
-    public void onDestroy() {
-        // TODO Auto-generated method stub
-        super.onDestroy();
-        Log.i("DEBUG>>>", "FirstService destroyed");
-    }
-
-    @Override
-    protected void onHandleIntent(Intent intent) {
-        final Object parseSync  = new Object();
-        final Object notifySync = new Object();
-
-        final ResultReceiver receiver = intent.getParcelableExtra("receiver");
         final SurveyDatabaseHandler dbHandler = new SurveyDatabaseHandler(getApplicationContext());
-
         int svyCt = dbHandler.getSurveyCount();
         List<Integer> IDs = dbHandler.getSurveyIDs();
+
+        ConnectivityManager connManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo mWifi = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+
+        if (!mWifi.isConnected()) {
+            Log.i("WIFI>>>", "WiFi not connected");
+            return; // If wifi is not connected do not try to update
+        }
+
+        Intent dialogClose = new Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS);
+        sendBroadcast(dialogClose);
+
+        NotificationManager mNotificationManager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
         for(int j = 0; j < svyCt; j++) { // for all surveys
             int survey_id = IDs.get(j);
             int timeCt = dbHandler.getTimes(j + 1).size();
             int dayCt  = dbHandler.getDays(j + 1).size();
 
-            for(int d = 0; d < dayCt; d++){
-                for(int k = 0; k < timeCt; k++) { // for all times that survey is available
+            try {
+                mNotificationManager.cancel(j);
+            }
+            catch(Exception ex) {
+                Log.i("DEBUG>>>", "Notification not canceled");
+            }
+
+            for(int d = 0; d < dayCt; d++){ // for every day that the survey is available
+
+                for(int k = 0; k < timeCt; k++) { // for all times in the curr day that survey is available
                     AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
 
-                    Intent dialogIntent = new Intent(getApplicationContext(), PopupService.class);
-                    dialogIntent.putExtra("ID", j);
+                    for(int i = 1; i <= 4; i++) { // for all iterations during the active time
 
-                    for(int i = 1; i <= 4; i++) {
                         String partID = String.valueOf(survey_id) + // survey id
                                 String.valueOf(d) +                 // day
-                                String.valueOf(j);                  // time
+                                String.valueOf(k);                  // time
 
                         int intentID = Integer.parseInt(partID + String.valueOf(i));
 
@@ -134,10 +122,8 @@ public class UpdateService extends IntentService {
         // Clear Survey Data
         dbHandler.deleteAll();
 
-        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-
         Log.i("DEBUG>>>", "Parse Query Starting");
-        receiver.send(STATUS_RUNNING, Bundle.EMPTY);
+        if(!from_boot) receiver.send(STATUS_RUNNING, Bundle.EMPTY);
 
         // Get all surveys
         final ParseQuery<ParseObject> query = new ParseQuery<>("SurveySummary");
@@ -170,6 +156,7 @@ public class UpdateService extends IntentService {
                                     List<Object> ans = new ArrayList<>(ques_ct);
                                     List<Object> type = new ArrayList<>(ques_ct);
                                     List<Object> ansVals = new ArrayList<>(ques_ct);
+                                    List<Object> endpts = new ArrayList<>(ques_ct);
 
                                     for (int j = 0; j < ques_ct; j++) {
                                         ParseObject curr_ques = survey.get(j);
@@ -178,12 +165,19 @@ public class UpdateService extends IntentService {
                                         ques.add(curr_ques.getString("question"));
                                         ans.add(Utilities.join(curr_ques.getList("options"), "%%"));
                                         ansVals.add(Utilities.join(curr_ques.getList("numericScale"), "%%"));
+                                        List<Object> temp = curr_ques.getList("endPoints");
+                                        if(temp.size() != 0){
+                                            endpts.add(Utilities.join(temp, "%%"));
+                                        }else{
+                                            endpts.add("-%%-");
+                                        }
                                     }
 
                                     String ques_str = Utilities.join(ques, "%%");
                                     String type_str = Utilities.join(type, "%%");
                                     String ans_str = Utilities.join(ans, "%nxt%");
                                     String ansVal_str = Utilities.join(ansVals, "%nxt%");
+                                    String endPts_str = Utilities.join(endpts, "%nxt%");
 
                                     // Store Survey
                                     dbHandler.createSurvey(
@@ -195,7 +189,8 @@ public class UpdateService extends IntentService {
                                             type_str,
                                             ansVal_str,
                                             surveyVersion,
-                                            Utilities.join(days, ",")
+                                            Utilities.join(days, ","),
+                                            endPts_str
                                     );
 
                                     // Get current survey's ID in the database
@@ -291,54 +286,18 @@ public class UpdateService extends IntentService {
                                     }
                                 }
                                 Log.i("SYNC>>>", "Sending finished");
-                                receiver.send(STATUS_FINISHED, bundle);
+                                if(!from_boot) receiver.send(STATUS_FINISHED, bundle);
                             }
                         });
                     }
 
-                    /*Log.i("SYNC>>>", "notifySync.notify");
-                    synchronized(notifySync){
-                        notifySync.notify();
-                    }*/
-
                 } else {
                     Log.i("DEBUG>>>", "Parse initial survey request failed");
                     bundle.putString(Intent.EXTRA_TEXT, e.toString());
-                    receiver.send(STATUS_ERROR, bundle);
+                    if(!from_boot) receiver.send(STATUS_ERROR, bundle);
                 }
             }
         });
-
-        /*Log.i("SYNC>>>", "notifySync.wait");
-        synchronized (notifySync) {
-            try {
-                notifySync.wait();
-            } catch (InterruptedException ex) {
-                Log.i("DEBUG>>>", "syncObject.wait() throws " + ex.toString());
-            }
-        }*/
-
-
-
-        //receiver.send(STATUS_FINISHED, bundle);
-
-        /*
-        while(!prefs.getBoolean(getString(R.string.importFinished), Boolean.FALSE)){
-            try{
-                Thread.sleep(50);
-            }
-            catch(java.lang.InterruptedException ex)
-            {
-                Log.i("DEBUG>>>", ex.toString());
-            }
-        }
-
-        Log.i("DEBUG>>>", "new survey ids = " + dbHandler.getSurveyIDs().toString());
-        Log.i("DEBUG>>>", "new names = " + dbHandler.getName(1) + " " + dbHandler.getName(2));
-
-        sendBroadcast(intent);
-        refreshStartPage();
-        */
     }
 
 }

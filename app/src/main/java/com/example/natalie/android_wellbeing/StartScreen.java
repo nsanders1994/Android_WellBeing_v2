@@ -34,6 +34,7 @@ import com.parse.ParseQuery;
 import java.util.Calendar;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 
 public class StartScreen extends Activity implements UpdateResultReceiver.Receiver{
@@ -42,8 +43,6 @@ public class StartScreen extends Activity implements UpdateResultReceiver.Receiv
     ListView startListView;
     StartListAdapter startListAdapter;
     int surveysImported = 0;
-
-
 
     @Override
     protected void onResume() {
@@ -59,24 +58,17 @@ public class StartScreen extends Activity implements UpdateResultReceiver.Receiv
                 break;
 
             case UpdateService.STATUS_FINISHED:
-                Log.i("SYNC>>>", "In Receiver");
-                /* Hide progress & extract result from bundle */
+                // Hide progress & extract result from bundle
                 int ct = resultData.getInt("SURVEYCT", 0);
                 surveysImported++;
-                Log.i("SYNC>>>", "ct = " + String.valueOf(ct));
-                Log.i("SYNC>>>", "surveysIymported = " + String.valueOf(surveysImported));
 
                 if(ct == surveysImported){
-                    Log.i("SYNC>>>", "Refreshing screen");
                     setProgressBarIndeterminateVisibility(false);
-                    Log.i("SYNC>>>", "survey ids = " + dbHandler.getSurveyIDs().toString());
 
-                /* Update ListView with result */
+                    // Update ListView with result
                     survey_ids = new ArrayList<>();
                     startListAdapter.notifyDataSetInvalidated();
                     startListAdapter.notifyDataSetChanged();
-                    //startListAdapter = new StartListAdapter();//ArrayAdapter(StartScreen.this, android.R.layout.simple_list_item_2, results);
-                    //startListView.setAdapter(startListAdapter);
                 }
 
                 break;
@@ -86,6 +78,20 @@ public class StartScreen extends Activity implements UpdateResultReceiver.Receiv
                 String error = resultData.getString(Intent.EXTRA_TEXT);
                 Toast.makeText(this, error, Toast.LENGTH_LONG).show();
                 break;
+
+            case OnBoot.STATUS_BOOT:
+                Log.i("UPDATE SERVICE>>>", "Set Update alarm on boot...");
+
+                // Start Update Service
+                UpdateResultReceiver mReceiver = new UpdateResultReceiver(new Handler());
+                mReceiver.setReceiver(this);
+                Intent updateIntent = new Intent(Intent.ACTION_SYNC, null, this, UpdateService.class);
+
+                // Send optional extras to Download IntentService
+                updateIntent.putExtra("receiver", mReceiver);
+                updateIntent.putExtra("requestId", 101);
+
+                start_UpdatesService(updateIntent);
         }
     }
 
@@ -93,6 +99,14 @@ public class StartScreen extends Activity implements UpdateResultReceiver.Receiv
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_start_screen);
+
+        // Check for Toast
+        Intent caller = getIntent();
+        boolean toast = caller.getBooleanExtra("TOAST", false);
+
+        if(toast){
+            Toast.makeText(getApplicationContext(), "The survey requested is inactive.", Toast.LENGTH_SHORT).show();
+        }
 
         // Start Update Service
         UpdateResultReceiver mReceiver = new UpdateResultReceiver(new Handler());
@@ -104,7 +118,7 @@ public class StartScreen extends Activity implements UpdateResultReceiver.Receiv
         updateIntent.putExtra("requestId", 101);
 
         start_UpdatesService(updateIntent);
-
+        Log.i("UPDATE SERVICE>>>", "Set alarm for update service");
         // Fill ListView
         dbHandler        = new SurveyDatabaseHandler(getApplicationContext());
         startListView    = (ListView) findViewById(R.id.listView);
@@ -134,7 +148,7 @@ public class StartScreen extends Activity implements UpdateResultReceiver.Receiv
                 Log.i("DEBUG>>>>", "# of surveys = " + String.valueOf(survey_ids.size()) );
                 int curr_id = survey_ids.get(position);
 
-                if(validTime(curr_id)){
+                if(Utilities.validTime(getApplicationContext(), curr_id)){
                     Intent intent = new Intent(StartScreen.this, SurveyScreen.class);
                     intent.putExtra("ID", survey_ids.get(position));
                     startActivity(intent);
@@ -147,17 +161,28 @@ public class StartScreen extends Activity implements UpdateResultReceiver.Receiv
 
         PendingIntent pendingIntent = PendingIntent.getService(
                 getApplicationContext(),
-                1,
+                18,
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT);
 
         AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
         alarmManager.cancel(pendingIntent);
 
+        // Get random time
+        Random rand = new Random();
+
+        // nextInt is normally exclusive of the top value,
+        // so add 1 to make it inclusive
+        int randomHr  = rand.nextInt((4) + 1);
+        int randomMin = rand.nextInt((59) + 1);
+        int randomSec = rand.nextInt((59) + 1);
+
+        Log.i("RANDOM>>>", String.valueOf(randomHr) + ":" + String.valueOf(randomMin) + ":" + String.valueOf(randomSec));
+
         Calendar cal = Calendar.getInstance();
-        cal.set(Calendar.HOUR_OF_DAY, 4);
-        cal.set(Calendar.MINUTE, 9);
-        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.HOUR_OF_DAY, randomHr);
+        cal.set(Calendar.MINUTE, randomMin);
+        cal.set(Calendar.SECOND, randomSec);
 
         Calendar curr_cal = Calendar.getInstance();
 
@@ -344,7 +369,7 @@ public class StartScreen extends Activity implements UpdateResultReceiver.Receiv
                 Calendar calendar1 = Calendar.getInstance();
                 calendar1.set(Calendar.HOUR_OF_DAY, hr0);
                 calendar1.set(Calendar.MINUTE, min0 + duration);
-                calendar0.set(Calendar.SECOND, 0);
+                calendar0.set(Calendar.SECOND, 59);
 
                 // Set clickable/unclickable
                 boolean completed = dbHandler.isCompleted(id);

@@ -32,9 +32,9 @@ public class WellBeing extends Application {
         // Initialize Parse
         Parse.enableLocalDatastore(this);
 
-        Parse.initialize(this, /*"wFcqaTXYYCeNqKJ8wswlwtXChEzJyFyBV7N5JOZX", "MomzqWhPQSVPNZ6hNjXtSSs6Lah5OMQCE8p4amsW");*/
-                "Z6S6iux9qyLGcCsAE3vuRvhHWDwFelxzT2nSqKWc",
-                "boXMTOaotk2HgGpxFLdNNPFw1d7WwB7c3G4nPHak");
+        Parse.initialize(this, "wFcqaTXYYCeNqKJ8wswlwtXChEzJyFyBV7N5JOZX", "MomzqWhPQSVPNZ6hNjXtSSs6Lah5OMQCE8p4amsW");
+                /*"Z6S6iux9qyLGcCsAE3vuRvhHWDwFelxzT2nSqKWc",
+                "boXMTOaotk2HgGpxFLdNNPFw1d7WwB7c3G4nPHak");*/
 
         final SurveyDatabaseHandler dbHandler = new SurveyDatabaseHandler(getApplicationContext());
 
@@ -71,6 +71,7 @@ public class WellBeing extends Application {
                                     List<Object> ans = new ArrayList<>(ques_ct);
                                     List<Object> type = new ArrayList<>(ques_ct);
                                     List<Object> ansVals = new ArrayList<>(ques_ct);
+                                    List<Object> endpts = new ArrayList<>(ques_ct);
 
                                     for (int j = 0; j < ques_ct; j++) {
                                         ParseObject curr_ques = survey.get(j);
@@ -79,12 +80,20 @@ public class WellBeing extends Application {
                                         ques.add(curr_ques.getString("question"));
                                         ans.add(Utilities.join(curr_ques.getList("options"), "%%"));
                                         ansVals.add(Utilities.join(curr_ques.getList("numericScale"), "%%"));
+                                        List<Object> temp = curr_ques.getList("endPoints");
+                                        if(temp.size() != 0){
+                                            endpts.add(Utilities.join(temp, "%%"));
+                                        }else{
+                                            endpts.add("-%%-");
+                                        }
+
                                     }
 
                                     String ques_str = Utilities.join(ques, "%%");
                                     String type_str = Utilities.join(type, "%%");
                                     String ans_str = Utilities.join(ans, "%nxt%");
                                     String ansVal_str = Utilities.join(ansVals, "%nxt%");
+                                    String endPts_str = Utilities.join(endpts, "%nxt%");
 
                                     dbHandler.createSurvey(
                                             Utilities.join(times, ","),
@@ -95,7 +104,8 @@ public class WellBeing extends Application {
                                             type_str,
                                             ansVal_str,
                                             surveyVersion,
-                                            Utilities.join(days, ",")
+                                            Utilities.join(days, ","),
+                                            endPts_str
                                     );
 
                                     int survey_id = dbHandler.getLastRowID();

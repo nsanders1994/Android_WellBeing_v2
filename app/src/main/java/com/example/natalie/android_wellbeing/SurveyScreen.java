@@ -9,13 +9,16 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.SeekBar;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Objects;
 
@@ -26,6 +29,7 @@ import java.util.Objects;
 public class SurveyScreen extends Activity {
     private TableLayout         surveyTable;
     private ArrayList<TableRow> ansRows   = new ArrayList<>();
+    private ArrayList<CheckBox> ansChk    = new ArrayList<>();
     private ArrayList<SeekBar>  sliders   = new ArrayList<>();
     private ArrayList<TextView> sliderAns = new ArrayList<>();
 
@@ -33,6 +37,7 @@ public class SurveyScreen extends Activity {
     private List<String>        ques_strs;
     private List<List<String>>  ans_str_lists;
     private List<List<Integer>> ans_val_lists;
+    private List<List<String>>  ans_end_pts;
     private List<String>        ques_types;
     private List<Long>          tstamps;
     private List<Integer>       ansrs;
@@ -43,12 +48,15 @@ public class SurveyScreen extends Activity {
     private int                 vwNo = 0;
     private int []              q_in_view;
     private int                 maxVw;
+    private long                lastTouch;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_survey_screen);
+
+        lastTouch = Calendar.getInstance().getTimeInMillis();
 
         // Initialize Survey
         final SurveyDatabaseHandler dbHandler = new SurveyDatabaseHandler(getApplicationContext());
@@ -66,6 +74,7 @@ public class SurveyScreen extends Activity {
         ques_ct    = ques_strs.size();
 
         // Initialize answer variables
+        ans_end_pts   = dbHandler.getEndPts(ID);
         ans_val_lists = dbHandler.getAnsVals(ID);
         ans_str_lists = dbHandler.getAnsLists(ID);
         ans_cts = new int[ques_ct];
@@ -100,33 +109,46 @@ public class SurveyScreen extends Activity {
         nextBttn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(vwNo + 1 > maxVw)
-                {
-                    Intent intent = new Intent(SurveyScreen.this, FinishScreen.class);
-                    updateAnsweredCount();
+                if(checkSurveyActive()){
+                    if(vwNo + 1 > maxVw)
+                    {
+                        Intent intent = new Intent(SurveyScreen.this, FinishScreen.class);
+                        updateAnsweredCount();
 
-                    // Convert to object list in order to join by delimiter
-                    List<Object> temp1 = new ArrayList<Object>();
-                    List<Object> temp2 = new ArrayList<Object>();
+                        // Convert to object list in order to join by delimiter
+                        List<Object> temp1 = new ArrayList<Object>();
+                        List<Object> temp2 = new ArrayList<Object>();
 
-                    temp1.addAll(ansrs);
-                    temp2.addAll(tstamps);
+                        temp1.addAll(ansrs);
+                        temp2.addAll(tstamps);
 
-                    // Store answers and timestamps
-                    dbHandler.storeAnswers(Utilities.join(temp1, ","), ID);
-                    dbHandler.storeTStamps(Utilities.join(temp2, ","), ID);
+                        // Store answers and timestamps
+                        dbHandler.storeAnswers(Utilities.join(temp1, ","), ID);
+                        dbHandler.storeTStamps(Utilities.join(temp2, ","), ID);
 
-                    intent.putExtra("CT", ques_answered_ct);
-                    intent.putExtra("ID", ID);
+                        intent.putExtra("CT", ques_answered_ct);
+                        intent.putExtra("ID", ID);
 
-                    startActivityForResult(intent, 3);
+                        startActivityForResult(intent, 3);
+                    }
+                    else
+                    {
+                        vwNo++;
+                        qNo++;
+                        nextView();
+                    }
                 }
-                else
-                {
-                    vwNo++;
-                    qNo++;
-                    nextView();
+                else{
+                    Toast.makeText(getApplicationContext(), "Survey no longer active.", Toast.LENGTH_SHORT).show();
+                    dbHandler.storeAnswers("empty", ID);
+                    dbHandler.storeTStamps("empty", ID);
+
+                    Intent intent = new Intent(SurveyScreen.this, StartScreen.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                    startActivity(intent);
                 }
+
+
             }
         });
 
@@ -134,27 +156,39 @@ public class SurveyScreen extends Activity {
         prevBttn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(vwNo - 1 < 0) {
-                    // Convert to object list in order to join by delimiter
-                    List<Object> temp1 = new ArrayList<Object>();
-                    List<Object> temp2 = new ArrayList<Object>();
+                if(checkSurveyActive()){
+                    if(vwNo - 1 < 0) {
+                        // Convert to object list in order to join by delimiter
+                        List<Object> temp1 = new ArrayList<Object>();
+                        List<Object> temp2 = new ArrayList<Object>();
 
-                    temp1.addAll(ansrs);
-                    temp2.addAll(tstamps);
+                        temp1.addAll(ansrs);
+                        temp2.addAll(tstamps);
 
-                    // Store answers and timestamps
-                    dbHandler.storeAnswers(Utilities.join(temp1, ","), ID);
-                    dbHandler.storeTStamps(Utilities.join(temp2, ","), ID);
+                        // Store answers and timestamps
+                        dbHandler.storeAnswers(Utilities.join(temp1, ","), ID);
+                        dbHandler.storeTStamps(Utilities.join(temp2, ","), ID);
+
+                        Intent intent = new Intent(SurveyScreen.this, StartScreen.class);
+
+                        startActivity(intent);
+                    }
+                    else {
+                        int currVw_qCt = q_in_view[vwNo];
+                        int prevVw_qCt = q_in_view[vwNo - 1];
+                        qNo = qNo - currVw_qCt - prevVw_qCt + 1; // set qNo to first question of next view
+                        vwNo--;
+                        nextView();
+                    }
+                }
+                else{
+                    Toast.makeText(getApplicationContext(), "Survey no longer active.", Toast.LENGTH_SHORT).show();
+                    dbHandler.storeAnswers("empty", ID);
+                    dbHandler.storeTStamps("empty", ID);
 
                     Intent intent = new Intent(SurveyScreen.this, StartScreen.class);
-                    startActivityForResult(intent, 2);
-                }
-                else {
-                    int currVw_qCt = q_in_view[vwNo];
-                    int prevVw_qCt = q_in_view[vwNo - 1];
-                    qNo = qNo - currVw_qCt - prevVw_qCt + 1; // set qNo to first question of next view
-                    vwNo--;
-                    nextView();
+                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                    startActivity(intent);
                 }
             }
         });
@@ -230,17 +264,29 @@ public class SurveyScreen extends Activity {
                 ansRows.get(i).setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
-                        // Show answer selected
-                        resetColors();
-                        view.setBackgroundColor(getResources().getColor(android.R.color.black));
+                        if(checkSurveyActive()){
+                            // Show answer selected
+                            resetColors();
+                            view.setBackgroundColor(getResources().getColor(android.R.color.black));
 
-                        // If the answer changed, update time stamp
-                        if (ansrs.get(qNo) != ans_val_lists.get(qNo).get(curr_row)) {
-                            setTstamp(qNo);
+                            // If the answer changed, update time stamp
+                            if (ansrs.get(qNo) != ans_val_lists.get(qNo).get(curr_row)) {
+                                setTstamp(qNo);
+                            }
+
+                            // Record Answer
+                            ansrs.set(qNo, ans_val_lists.get(qNo).get(curr_row));
                         }
+                        else{
+                            SurveyDatabaseHandler dbHandler = new SurveyDatabaseHandler(getApplicationContext());
+                            Toast.makeText(getApplicationContext(), "Survey no longer active.", Toast.LENGTH_SHORT).show();
+                            dbHandler.storeAnswers("empty", ID);
+                            dbHandler.storeTStamps("empty", ID);
 
-                        // Record Answer
-                        ansrs.set(qNo, ans_val_lists.get(qNo).get(curr_row));
+                            Intent intent = new Intent(SurveyScreen.this, StartScreen.class);
+                            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                            startActivity(intent);
+                        }
                     }
                 });
             }
@@ -251,10 +297,96 @@ public class SurveyScreen extends Activity {
                 ansRows.get(ans - 1).setBackgroundColor(getResources().getColor(android.R.color.black));
             }
         }
+        /*
+        // Checkbox layout
+        if(ques_types.get(qNo).equals("Checkbox")) {
+            // Create Question Row
+            TableRow quesRow = new TableRow(this);
+            quesRow.setLayoutParams(rowParam);
+
+            TextView quesTxt = new TextView(this);
+            quesTxt.setLayoutParams(leftParam);
+            quesTxt.setTextSize(20);
+            quesTxt.setTextColor(getResources().getColor(android.R.color.white));
+            quesTxt.setText(ques_strs.get(qNo));
+
+            quesRow.addView(quesTxt);
+            surveyTable.addView(quesRow);
+
+            // Create Answer Rows
+            for(int i = 0; i < ans_cts[qNo]; i++) {
+                final int curr_row = i;
+
+                ansRows.add(new TableRow(this));
+                ansRows.get(i).setLayoutParams(rowParam);
+                ansRows.get(i).setBackgroundColor(getResources().getColor(R.color.survey_dark_grey));
+
+                ansChk.add(new CheckBox(this));
+                ansChk.get(i).setText(ans_str_lists.get(qNo).get(i));
+                ansChk.get(i).setLayoutParams(leftParam);
+                ansChk.get(i).setTextColor(getResources().getColor(android.R.color.white));
+                ansChk.get(i).setTextSize(20);
+                ansChk.get(i).setPadding(10, 5, 5, 5);
+
+                ansRows.get(i).addView(ansChk.get(i));
+                surveyTable.addView(ansRows.get(i));
+
+                ansChk.get(i).setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        if(checkSurveyActive()){
+                            // Show answer selected
+                            // If the answer changed, update time stamp
+                            if (ansrs.get(qNo) != ans_val_lists.get(qNo).get(curr_row)) {
+                                setTstamp(qNo);
+                            }
+
+                            // Record Answer
+                            ansrs.set(qNo, ans_val_lists.get(qNo).get(curr_row));
+                        }
+                        else{
+                            SurveyDatabaseHandler dbHandler = new SurveyDatabaseHandler(getApplicationContext());
+                            Toast.makeText(getApplicationContext(), "Survey no longer active.", Toast.LENGTH_SHORT).show();
+                            dbHandler.storeAnswers("empty", ID);
+                            dbHandler.storeTStamps("empty", ID);
+
+                            Intent intent = new Intent(SurveyScreen.this, StartScreen.class);
+                            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                            startActivity(intent);
+                        }
+                    }
+                });
+            }
+
+            // Show answer selected previously;
+            if(ansrs.get(qNo) != 0) {
+                int ans = ansrs.get(qNo);
+                ansRows.get(ans - 1).setBackgroundColor(getResources().getColor(android.R.color.black));
+            }
+        }*/
         // Slider layout
         else if (ques_types.get(qNo).equals("Slider")) {
             int sliderCt = 0;
             final int topQues = qNo;
+            String endpt1 = ans_end_pts.get(qNo).get(0);
+            String endpt2 = ans_end_pts.get(qNo).get(1);
+
+            // Create Scale Row
+            if(!endpt1.equals("-")) {
+                TableRow endPtsRow = new TableRow(this);
+                endPtsRow.setLayoutParams(rowParam);
+
+                TextView endPtsTxt = new TextView(this);
+                endPtsTxt.setLayoutParams(centerParam);
+                endPtsTxt.setTextColor(getResources().getColor(android.R.color.white));
+                endPtsTxt.setTextSize(20);
+                endPtsTxt.setText("SCALE:\n\"" + endpt1 + "\" to \"" + endpt2 + "\"");
+                endPtsTxt.setPadding(0, 0, 0, 10);
+
+                endPtsRow.addView(endPtsTxt);
+                surveyTable.addView(endPtsRow);
+            }
+
 
             for(int i = qNo; i < ques_ct && sliderCt < 4; i++) {
                 if(ques_types.get(i).equals("Slider")) {
@@ -291,8 +423,9 @@ public class SurveyScreen extends Activity {
                     sliderAns.get(sliderCt).setLayoutParams(centerParam);
                     ansRow.addView(sliderAns.get(sliderCt));
 
-                    surveyTable.addView(sliderRow);
                     surveyTable.addView(ansRow);
+                    surveyTable.addView(sliderRow);
+
 
                     // Initialize Slider
                     sliders.get(sliderCt).setProgress(0);
@@ -320,28 +453,39 @@ public class SurveyScreen extends Activity {
                     sliders.get(sliderCt).setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                         @Override
                         public void onProgressChanged(SeekBar seekBar, int j, boolean b) {
+                            if(checkSurveyActive()){
+                                int curr_ans = ansrs.get(topQues + sliderOffset);
+                                int new_ans;
+                                if(j != 0) {
+                                    new_ans = ans_val_lists.get(topQues + sliderOffset).get(j - 1);
+                                }
+                                else {
+                                    sliders.get(sliderOffset).setProgress(1);
+                                    new_ans = ans_val_lists.get(topQues + sliderOffset).get(0);
+                                }
 
-                            int curr_ans = ansrs.get(topQues + sliderOffset);
-                            int new_ans;
-                            if(j != 0) {
-                                new_ans = ans_val_lists.get(topQues + sliderOffset).get(j - 1);
-                            }
-                            else {
-                                sliders.get(sliderOffset).setProgress(1);
-                                new_ans = ans_val_lists.get(topQues + sliderOffset).get(0);
-                            }
+                                if(curr_ans != new_ans) {
+                                    setTstamp(topQues + sliderOffset);
+                                }
 
-                            if(curr_ans != new_ans) {
-                                setTstamp(topQues + sliderOffset);
+                                if(j != 0 ) {
+                                    sliderAns.get(sliderOffset).setText(ans_str_lists.get(topQues + sliderOffset).get(j - 1));
+                                    ansrs.set(topQues + sliderOffset, new_ans);
+                                }
+                                else {
+                                    sliderAns.get(sliderOffset).setText(ans_str_lists.get(topQues + sliderOffset).get(0));
+                                    ansrs.set(topQues + sliderOffset, new_ans);
+                                }
                             }
+                            else{
+                                SurveyDatabaseHandler dbHandler = new SurveyDatabaseHandler(getApplicationContext());
+                                Toast.makeText(getApplicationContext(), "Survey no longer active.", Toast.LENGTH_SHORT).show();
+                                dbHandler.storeAnswers("empty", ID);
+                                dbHandler.storeTStamps("empty", ID);
 
-                            if(j != 0 ) {
-                                sliderAns.get(sliderOffset).setText(ans_str_lists.get(topQues + sliderOffset).get(j - 1));
-                                ansrs.set(topQues + sliderOffset, new_ans);
-                            }
-                            else {
-                                sliderAns.get(sliderOffset).setText(ans_str_lists.get(topQues + sliderOffset).get(0));
-                                ansrs.set(topQues + sliderOffset, new_ans);
+                                Intent intent = new Intent(SurveyScreen.this, StartScreen.class);
+                                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                                startActivity(intent);
                             }
                         }
 
@@ -360,6 +504,28 @@ public class SurveyScreen extends Activity {
             }
 
             qNo = qNo + sliderCt - 1;      // increment current question number
+        }
+    }
+
+    public boolean checkSurveyActive(){
+        long curr_time = Calendar.getInstance().getTimeInMillis();
+        long t_diff = curr_time - lastTouch;
+
+        if(Utilities.validTime(getApplicationContext(), ID)){
+            Log.i("TIME>>>", "valid time");
+            lastTouch = curr_time;
+            return true;
+        }
+        else{
+            if((t_diff/1000)/60 <= 5){
+                Log.i("TIME>>>", "less than 5 minutes inactive");
+                lastTouch = curr_time;
+                return true;
+            }
+            else{
+                Log.i("TIME>>>", "inactive");
+                return false;
+            }
         }
     }
 
@@ -401,6 +567,47 @@ public class SurveyScreen extends Activity {
 
             nextView();
         }
+    }
+
+    @Override
+    public void onBackPressed() {
+        SurveyDatabaseHandler dbHandler = new SurveyDatabaseHandler(getApplicationContext());
+        if(checkSurveyActive()){
+            if(vwNo - 1 < 0) {
+                // Convert to object list in order to join by delimiter
+                List<Object> temp1 = new ArrayList<Object>();
+                List<Object> temp2 = new ArrayList<Object>();
+
+                temp1.addAll(ansrs);
+                temp2.addAll(tstamps);
+
+                // Store answers and timestamps
+                dbHandler.storeAnswers(Utilities.join(temp1, ","), ID);
+                dbHandler.storeTStamps(Utilities.join(temp2, ","), ID);
+
+                Intent intent = new Intent(SurveyScreen.this, StartScreen.class);
+
+                startActivity(intent);
+            }
+            else {
+                int currVw_qCt = q_in_view[vwNo];
+                int prevVw_qCt = q_in_view[vwNo - 1];
+                qNo = qNo - currVw_qCt - prevVw_qCt + 1; // set qNo to first question of next view
+                vwNo--;
+                nextView();
+            }
+        }else{
+            Toast.makeText(getApplicationContext(), "Survey no longer active.", Toast.LENGTH_SHORT).show();
+            dbHandler.storeAnswers("empty", ID);
+            dbHandler.storeTStamps("empty", ID);
+
+            Intent intent = new Intent(SurveyScreen.this, StartScreen.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            startActivity(intent);
+        }
+
+
+
     }
 }
 

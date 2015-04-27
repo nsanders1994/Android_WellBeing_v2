@@ -30,6 +30,7 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
     private static final String KEY_TSTAMPS     = "TStamps";
     private static final String KEY_VERSION     = "Version";
     private static final String KEY_DAYS        = "Days";
+    private static final String KEY_ENDPTS      = "EndPts";
 
     public SurveyDatabaseHandler(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -50,11 +51,12 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
                 + KEY_ANS_VALS    + " STRING,"
                 + KEY_TSTAMPS     + " STRING,"
                 + KEY_VERSION     + " INTEGER,"
-                + KEY_DAYS        + " STRING)");
+                + KEY_DAYS        + " STRING,"
+                + KEY_ENDPTS      + " STRING)");
     }
 
     public void createSurvey(String times, int dur, String name, String ques, String ans,
-                             String types, String ansVals, int version, String days) {
+                             String types, String ansVals, int version, String days, String endpts) {
         SQLiteDatabase db = getWritableDatabase();
         ContentValues values = new ContentValues();
 
@@ -70,6 +72,7 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
         values.put(KEY_TSTAMPS,    "empty");
         values.put(KEY_VERSION,    version);
         values.put(KEY_DAYS,       days);
+        values.put(KEY_ENDPTS,     endpts);
 
         db.insert(TABLE_WELLBEING,null,values);
         db.close();
@@ -94,19 +97,6 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
         SQLiteDatabase db = getWritableDatabase();
         db.execSQL("DELETE FROM " + TABLE_WELLBEING);
         db.execSQL("DELETE FROM sqlite_sequence WHERE name='Wellbeing'");
-        /*db.execSQL("DROP TABLE "+ TABLE_WELLBEING);
-        db.execSQL("CREATE TABLE " + TABLE_WELLBEING + "("
-                + KEY_POPUP_TIME  + " STRING,"
-                + KEY_DURATION    + " INTEGER,"
-                + KEY_NAME        + " STRING,"
-                + KEY_QUES        + " STRING,"
-                + KEY_ANSRS       + " STRING,"
-                + KEY_TYPES       + " STRING,"
-                + KEY_COMPLETE    + " INTEGER,"
-                + KEY_USER_ANS    + " STRING,"
-                + KEY_ANS_VALS    + " STRING,"
-                + KEY_TSTAMPS     + " STRING,"
-                + KEY_VERSION     + " INTEGER)");*/
     }
 
     public int getSurveyCount(){
@@ -436,6 +426,31 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
         db.close();
 
         return version;
+    }
+
+    public List<List<String>> getEndPts(int id){
+        SQLiteDatabase db = getReadableDatabase();
+        Cursor cursor = db.rawQuery(
+                "SELECT " + KEY_ENDPTS +
+                        " FROM " + TABLE_WELLBEING +
+                        " WHERE rowid = " + id,
+                null
+        );
+
+        cursor.moveToFirst();
+        String endpts_str = cursor.getString(0);
+        String [] endpts_array = endpts_str.split("%nxt%");
+
+        int endpts_ct = endpts_array.length;
+        List< List<String> > ans_list = new ArrayList<>();
+        for(int i = 0; i < endpts_ct; i++) {
+            ans_list.add(i, Arrays.asList(endpts_array[i].split("%%")));
+        }
+
+        cursor.close();
+        db.close();
+
+        return ans_list;
     }
 
     public int setComplete(boolean finished, int id) {

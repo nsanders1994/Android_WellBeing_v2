@@ -20,4 +20,5 @@
     <string name="emailStored">emailStored</string>
     <string name="app_version">ND-WB-SAV-2015-04-20</string>
     <string name="importCt">0</string>
+    <string name="notificationIDs">NA</string>
 </resources>

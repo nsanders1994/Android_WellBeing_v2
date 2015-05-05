@@ -5,15 +5,20 @@ import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.ResultReceiver;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.widget.Toast;
 
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 /**
  * Created by Natalie on 12/17/2014.
@@ -24,10 +29,7 @@ public class OnBoot extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
 
-        //Toast.makeText(context, "Rebooting Wellbeing", Toast.LENGTH_SHORT).show();
-
-        //final ResultReceiver receiver = intent.getParcelableExtra("receiver");
-        //receiver.send(STATUS_BOOT, Bundle.EMPTY);
+        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
 
         start_UpdatesService(context);
 
@@ -91,6 +93,7 @@ public class OnBoot extends BroadcastReceiver {
                                 notifIntent.putExtra("ID", survey_id);
                                 notifIntent.putExtra("PART_ID", partID);
                                 notifIntent.putExtra("ITER", iter);
+                                notifIntent.putExtra("TIME", String.valueOf(hr) + ":" + String.valueOf(min));
 
                                 PendingIntent notifPendingIntent2 = PendingIntent.getService(
                                         context,
@@ -116,6 +119,7 @@ public class OnBoot extends BroadcastReceiver {
                     notifIntent.putExtra("ID", survey_id);
                     notifIntent.putExtra("PART_ID", partID);
                     notifIntent.putExtra("ITER", 1);
+                    notifIntent.putExtra("TIME", String.valueOf(hr) + ":" + String.valueOf(min));
 
                     PendingIntent notifPendingIntent = PendingIntent.getService(
                             context,
@@ -124,10 +128,10 @@ public class OnBoot extends BroadcastReceiver {
                             PendingIntent.FLAG_CANCEL_CURRENT);
 
                     // Set alarm for survey notification
-                    alarmManager.setRepeating(
+                    alarmManager.set/*Repeating*/(
                             AlarmManager.RTC_WAKEUP,
                             cal.getTimeInMillis(),
-                            7*alarmManager.INTERVAL_DAY,
+                            //7*alarmManager.INTERVAL_DAY,
                             notifPendingIntent);
                 }
             }

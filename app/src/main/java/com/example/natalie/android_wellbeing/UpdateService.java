@@ -2,7 +2,9 @@ package com.example.natalie.android_wellbeing;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import android.app.AlarmManager;
 import android.app.IntentService;
@@ -30,7 +32,6 @@ import com.parse.ParseQuery;
  * Created by Natalie on 2/15/2015.
  */
 public class UpdateService extends IntentService {
-
     public static final int STATUS_RUNNING = 0;
     public static final int STATUS_FINISHED = 1;
     public static final int STATUS_ERROR = 2;
@@ -66,6 +67,7 @@ public class UpdateService extends IntentService {
         Intent dialogClose = new Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS);
         sendBroadcast(dialogClose);
 
+        /*AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
         NotificationManager mNotificationManager =
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
@@ -117,6 +119,8 @@ public class UpdateService extends IntentService {
             }
         }
 
+        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());*/
+
         Log.i("DEBUG>>>", "Before " + dbHandler.getSurveyIDs().toString());
 
         // Clear Survey Data
@@ -163,8 +167,16 @@ public class UpdateService extends IntentService {
 
                                         type.add(curr_ques.getString("questionType"));
                                         ques.add(curr_ques.getString("question"));
-                                        ans.add(Utilities.join(curr_ques.getList("options"), "%%"));
-                                        ansVals.add(Utilities.join(curr_ques.getList("numericScale"), "%%"));
+
+                                        if(curr_ques.getString("questionType").equals("Textbox")){
+                                            ans.add("NA");
+                                            ansVals.add(-1);
+                                        }
+                                        else{
+                                            ans.add(Utilities.join(curr_ques.getList("options"), "%%"));
+                                            ansVals.add(Utilities.join(curr_ques.getList("numericScale"), "%%"));
+                                        }
+
                                         List<Object> temp = curr_ques.getList("endPoints");
                                         if(temp.size() != 0){
                                             endpts.add(Utilities.join(temp, "%%"));
@@ -172,6 +184,8 @@ public class UpdateService extends IntentService {
                                             endpts.add("-%%-");
                                         }
                                     }
+
+
 
                                     String ques_str = Utilities.join(ques, "%%");
                                     String type_str = Utilities.join(type, "%%");
@@ -247,6 +261,7 @@ public class UpdateService extends IntentService {
                                                         intent.putExtra("ID", survey_id);
                                                         intent.putExtra("PART_ID", partID);
                                                         intent.putExtra("ITER", iter);
+                                                        intent.putExtra("TIME", String.valueOf(hr) + ":" + String.valueOf(min));
 
                                                         PendingIntent notifPendingIntent2 = PendingIntent.getService(
                                                                 getApplicationContext(),
@@ -269,6 +284,7 @@ public class UpdateService extends IntentService {
                                             notifIntent.putExtra("ID", survey_id);
                                             notifIntent.putExtra("PART_ID", partID);
                                             notifIntent.putExtra("ITER", 1);
+                                            notifIntent.putExtra("TIME", String.valueOf(hr) + ":" + String.valueOf(min));
 
                                             PendingIntent notifPendingIntent = PendingIntent.getService(
                                                     getApplicationContext(),
@@ -277,10 +293,10 @@ public class UpdateService extends IntentService {
                                                     PendingIntent.FLAG_CANCEL_CURRENT);
 
                                             // Set alarm for survey notification
-                                            alarmManager.setRepeating(
+                                            alarmManager.set/*Repeating*/(
                                                     AlarmManager.RTC_WAKEUP,
                                                     cal.getTimeInMillis(),
-                                                    7 * alarmManager.INTERVAL_DAY,
+                                                    //7 * alarmManager.INTERVAL_DAY,
                                                     notifPendingIntent);
                                         }
                                     }
@@ -299,5 +315,4 @@ public class UpdateService extends IntentService {
             }
         });
     }
-
 }

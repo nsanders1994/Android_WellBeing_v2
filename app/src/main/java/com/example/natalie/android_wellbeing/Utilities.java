@@ -46,77 +46,6 @@ public class Utilities extends Activity {
         return str;
     }
 
-    public static void startAlarms(int id, Context context, boolean forNxtDay){
-        SurveyDatabaseHandler dbHandler = new SurveyDatabaseHandler(context);
-        final List<String> time    = dbHandler.getTimes(id);
-        final int duration         = dbHandler.getDuration(id);
-
-        for(int j = 0; j < time.size(); j++) {
-            int hr = Integer.parseInt(String.valueOf(time.get(j)).split(":")[0]);
-            int min = Integer.parseInt(String.valueOf(time.get(j)).split(":")[1]);
-
-            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-
-            Calendar cal = Calendar.getInstance();
-            cal.set(Calendar.HOUR_OF_DAY, hr);
-            cal.set(Calendar.MINUTE, min);
-            cal.set(Calendar.SECOND, 0);
-
-            for (int i = 0; i < 4; i++) {
-                // Get alarm time
-                int curr_hr = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
-                int curr_min = Calendar.getInstance().get(Calendar.MINUTE);
-
-                int alarm_hr = cal.get(Calendar.HOUR_OF_DAY);
-                int alarm_min = cal.get(Calendar.MINUTE);
-
-                // If it's after the alarm time, schedule for next day
-                if (curr_hr > alarm_hr || curr_hr == alarm_hr && curr_min > alarm_min || forNxtDay) {
-                    cal.add(Calendar.DAY_OF_YEAR, 1); // add, not set!
-                }
-
-                if (i < 3) {
-                    Intent notifIntent = new Intent(context, NotificationService.class);
-                    notifIntent.putExtra("ID", id);
-
-                    Log.i("DEBUG>>>", "NOTIF:" + String.valueOf(id) + String.valueOf(j) + String.valueOf(i));
-                    PendingIntent notifPendingIntent = PendingIntent.getService(
-                            context,
-                            Integer.parseInt(String.valueOf(id) + String.valueOf(j) + String.valueOf(i)),
-                            notifIntent,
-                            PendingIntent.FLAG_CANCEL_CURRENT);
-
-                    // Set alarm for survey notification
-                    alarmManager.setRepeating(
-                            AlarmManager.RTC_WAKEUP,
-                            cal.getTimeInMillis(),
-                            alarmManager.INTERVAL_DAY,
-                            notifPendingIntent);
-                } else {
-                    Log.i("DEBUG>>>", "DIALOG:" + String.valueOf(id) + String.valueOf(j) + String.valueOf(i));
-                    Intent dialogIntent = new Intent(context, PopupService.class);
-                    dialogIntent.putExtra("ID", id);
-
-                    PendingIntent dialogPendingIntent = PendingIntent.getService(
-                            context,
-                            Integer.parseInt(String.valueOf(id) + String.valueOf(j) + String.valueOf(i)),
-                            dialogIntent,
-                            PendingIntent.FLAG_CANCEL_CURRENT);
-
-                    // Set alarm for survey diolog
-                    alarmManager.setRepeating(
-                            AlarmManager.RTC_WAKEUP,
-                            cal.getTimeInMillis(),
-                            alarmManager.INTERVAL_DAY,
-                            dialogPendingIntent);
-                }
-
-
-                cal.add(Calendar.MINUTE, duration / 4);
-            }
-        }
-    }
-
     static boolean validTime(Context context, int id){
         SurveyDatabaseHandler dbHandler = new SurveyDatabaseHandler(context);
         List<String> times = dbHandler.getTimes(id);
@@ -126,6 +55,7 @@ public class Utilities extends Activity {
 
         int currDay = Calendar.getInstance().get(Calendar.DAY_OF_WEEK);
         if(days.contains(currDay - 1)){
+            Log.i("VALID>>", "Valid day");
             for(int i = 0; i < timeCt; i++) {
                 // Calculate survey start time
                 int hr0 = Integer.parseInt(times.get(i).split(":")[0]);
@@ -142,7 +72,7 @@ public class Utilities extends Activity {
                 Calendar calendar1 = Calendar.getInstance();
                 calendar1.set(Calendar.HOUR_OF_DAY, hr0);
                 calendar1.set(Calendar.MINUTE, min0 + duration);
-                calendar0.set(Calendar.SECOND, 59);
+                calendar0.set(Calendar.SECOND, 0);
 
                 // Set clickable/unclickable
                 boolean completed = dbHandler.isCompleted(id);
@@ -151,9 +81,14 @@ public class Utilities extends Activity {
                 if (!completed &&
                         curr_calendar.getTimeInMillis() >= calendar0.getTimeInMillis() &&
                         curr_calendar.getTimeInMillis() <= calendar1.getTimeInMillis()) {
-
+                    Log.i("VALID>>", "Is valid");
                     isValid = true;
                 }
+
+                Log.i("VALID>>", "curr time   = " + String.valueOf(curr_calendar.getTimeInMillis()));
+                Log.i("VALID>>", "alarm start = " + String.valueOf(calendar0.getTimeInMillis()));
+                Log.i("VALID>>", "alarm end   = " + String.valueOf(calendar1.getTimeInMillis()));
+
             }
         }
 

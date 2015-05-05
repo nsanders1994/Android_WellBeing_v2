@@ -23,6 +23,7 @@ import java.util.Calendar;
  * Created by Natalie on 4/10/2015.
  */
 public class NotificationService extends IntentService {
+    private static Context nContext;
     private SurveyDatabaseHandler dbHandler;
 
     public NotificationService() {
@@ -32,14 +33,16 @@ public class NotificationService extends IntentService {
     @Override
     public void onCreate() {
         super.onCreate();
+        nContext = getApplicationContext();
     }
 
     @Override
     protected void onHandleIntent(Intent intent) {
 
-        final int ID = intent.getIntExtra("ID", 1);
+        final int ID  = intent.getIntExtra("ID", 1);
         String partID = intent.getStringExtra("PART_ID");
         int iteration = intent.getIntExtra("ITER", 1);
+        String time   = intent.getStringExtra("TIME");
 
         dbHandler = new SurveyDatabaseHandler(getApplicationContext());
         int duration = dbHandler.getDuration(ID);
@@ -47,11 +50,42 @@ public class NotificationService extends IntentService {
         Log.i("Notification>>>", "NOTIFICATION SERVICE FOR " + String.valueOf(ID));
 
         // Set first alarm for next day
-
         if(iteration == 1) {
             // As the first notification, set survey_completed to False and start new active period
             dbHandler.setComplete(false, ID);
             Log.i("DEBUG>>>", "Reset setComplete = false for "  + String.valueOf(ID));
+
+            if(Utilities.validTime(getApplicationContext(),ID)){
+                // Start first alarm for next day
+                int hr = Integer.parseInt(time.split(":")[0]);
+                int min = Integer.parseInt(time.split(":")[1]);
+                Calendar cal = Calendar.getInstance();
+
+                cal.set(Calendar.HOUR_OF_DAY, hr);
+                cal.set(Calendar.MINUTE, min);
+                cal.set(Calendar.SECOND, 0);
+                cal.add(Calendar.DAY_OF_WEEK, 7);
+
+                int intentID = Integer.parseInt(partID + String.valueOf(1));
+
+                Intent notifIntent = new Intent(getApplicationContext(), NotificationService.class);
+                notifIntent.putExtra("ID", ID);              // survey id
+                notifIntent.putExtra("PART_ID", partID);     // notification id without the iteration number
+                notifIntent.putExtra("ITER", 1);             // iteration number
+                notifIntent.putExtra("TIME", time);          // start time
+
+                PendingIntent notifPendingIntent = PendingIntent.getService(
+                        getApplicationContext(),
+                        intentID,
+                        notifIntent,
+                        PendingIntent.FLAG_CANCEL_CURRENT);
+
+                AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+                alarmManager.set(
+                        AlarmManager.RTC_WAKEUP,
+                        cal.getTimeInMillis(),
+                        notifPendingIntent);
+            }
         }
 
         Log.i("DEBUG>>>", "Iteration for " + String.valueOf(ID) + " = " + String.valueOf(iteration));
@@ -61,9 +95,10 @@ public class NotificationService extends IntentService {
             int intentID = Integer.parseInt(partID + String.valueOf(iteration + 1));
 
             Intent notifIntent = new Intent(getApplicationContext(), NotificationService.class);
-            notifIntent.putExtra("ID", ID);
-            notifIntent.putExtra("PART_ID", partID);
-            notifIntent.putExtra("ITER", iteration + 1);
+            notifIntent.putExtra("ID", ID);              // survey id
+            notifIntent.putExtra("PART_ID", partID);     // notification id without the iteration number
+            notifIntent.putExtra("ITER", iteration + 1); // iteration number
+            notifIntent.putExtra("TIME", time);          // start time
 
             PendingIntent notifPendingIntent = PendingIntent.getService(
                     getApplicationContext(),
@@ -77,7 +112,7 @@ public class NotificationService extends IntentService {
         }
 
         // Show current notification/dialog
-        if(!dbHandler.isCompleted(ID)) {
+        if(!dbHandler.isCompleted(ID) && Utilities.validTime(getApplicationContext(), ID)) {
             if(iteration < 4) {
 
                 String survey_name = dbHandler.getName(ID);
@@ -107,7 +142,7 @@ public class NotificationService extends IntentService {
                 mNotificationManager.notify(ID, mBuilder.build());
 
             }
-            else if(iteration == 4){
+            else if(iteration == 4 && Utilities.validTime(getApplicationContext(), ID)){
                 Intent i = new Intent(NotificationService.this, ReminderDialog.class);
                 i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 i.putExtra("ID", ID);

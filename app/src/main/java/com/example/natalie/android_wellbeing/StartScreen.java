@@ -173,9 +173,9 @@ public class StartScreen extends Activity implements UpdateResultReceiver.Receiv
 
         // nextInt is normally exclusive of the top value,
         // so add 1 to make it inclusive
-        int randomHr  = rand.nextInt((4) + 1);
-        int randomMin = rand.nextInt((59) + 1);
-        int randomSec = rand.nextInt((59) + 1);
+        int randomHr  = 3;//rand.nextInt((4) + 1);
+        int randomMin = 23;//rand.nextInt((59) + 1);
+        int randomSec = 0;//rand.nextInt((59) + 1);
 
         Log.i("RANDOM>>>", String.valueOf(randomHr) + ":" + String.valueOf(randomMin) + ":" + String.valueOf(randomSec));
 
@@ -331,7 +331,7 @@ public class StartScreen extends Activity implements UpdateResultReceiver.Receiv
 
 
             // Color code available vs unavailable surveys
-            if(validTime(arg0 + 1)){
+            if(Utilities.validTime(getApplicationContext(), arg0 + 1)){
                 time.setTextColor(getResources().getColor(android.R.color.black));
                 name.setTextColor(getResources().getColor(android.R.color.black));
             }
@@ -342,49 +342,6 @@ public class StartScreen extends Activity implements UpdateResultReceiver.Receiv
 
             return arg1;
         }
-    }
-
-    boolean validTime(int id){
-        List<String> times = dbHandler.getTimes(id);
-        List<Integer> days = dbHandler.getDays(id);
-        int timeCt = times.size();
-        int dayCt  = days.size();
-        Boolean isValid = false;
-
-        int currDay = Calendar.getInstance().get(Calendar.DAY_OF_WEEK);
-        if(days.contains(currDay - 1)){
-            for(int i = 0; i < timeCt; i++) {
-                // Calculate survey start time
-                int hr0 = Integer.parseInt(times.get(i).split(":")[0]);
-                int min0 = Integer.parseInt(times.get(i).split(":")[1]);
-
-                Calendar calendar0 = Calendar.getInstance();
-                calendar0.set(Calendar.HOUR_OF_DAY, hr0);
-                calendar0.set(Calendar.MINUTE, min0);
-                calendar0.set(Calendar.SECOND, 0);
-
-                // Calculate survey closing time
-                int duration = dbHandler.getDuration(id);
-
-                Calendar calendar1 = Calendar.getInstance();
-                calendar1.set(Calendar.HOUR_OF_DAY, hr0);
-                calendar1.set(Calendar.MINUTE, min0 + duration);
-                calendar0.set(Calendar.SECOND, 59);
-
-                // Set clickable/unclickable
-                boolean completed = dbHandler.isCompleted(id);
-                Calendar curr_calendar = Calendar.getInstance();
-
-                if (!completed &&
-                        curr_calendar.getTimeInMillis() >= calendar0.getTimeInMillis() &&
-                        curr_calendar.getTimeInMillis() <= calendar1.getTimeInMillis()) {
-
-                    isValid = true;
-                }
-            }
-        }
-
-        return isValid;
     }
 
     @Override

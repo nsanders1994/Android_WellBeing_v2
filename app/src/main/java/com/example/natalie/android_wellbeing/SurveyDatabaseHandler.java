@@ -303,7 +303,7 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
         }
     }
 
-    public List<Integer> getUserAns(int id) {
+    public List<String> getUserAns(int id) {
         SQLiteDatabase db = getReadableDatabase();
         Cursor cursor = db.rawQuery(
                 "SELECT " + KEY_USER_ANS +
@@ -314,29 +314,23 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
 
         cursor.moveToFirst();
         String ans_str = cursor.getString(0);
-        List <Integer> ans_intList = new ArrayList<>();
+        List <String> ans_List = new ArrayList<>();
 
         if(!ans_str.equals("empty")) {
-            List <String> ans_strList = Arrays.asList(ans_str.split(","));
-            int ansCt = ans_strList.size();
-
-            for(int j = 0; j < ansCt; j++) {
-                int integer = Integer.parseInt(ans_strList.get(j));
-                ans_intList.add(integer);
-            }
+            ans_List = Arrays.asList(ans_str.split("%nxt%"));
         }
         else {
             int qCt = getQuesList(id).size();
 
             for(int i = 0; i < qCt; i++){
-                ans_intList.add(0);
+                ans_List.add("0");
             }
         }
 
         cursor.close();
         db.close();
 
-        return ans_intList;
+        return ans_List;
     }
 
     public List< List<Integer>> getAnsVals(int id) {

@@ -2,27 +2,17 @@ package com.example.natalie.android_wellbeing;
 
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-
 import android.app.AlarmManager;
 import android.app.IntentService;
-import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.IBinder;
 import android.os.ResultReceiver;
-import android.preference.PreferenceManager;
-import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
-
 import com.parse.FindCallback;
 import com.parse.ParseException;
 import com.parse.ParseObject;
@@ -45,103 +35,54 @@ public class UpdateService extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
+        // Initialize the SQLite database handler
+        final SurveyDatabaseHandler dbHandler = new SurveyDatabaseHandler(getApplicationContext());
 
+        // Check whether the update service was called from the OnBoot service; if so no information
+        // needs to be sent to the broadcast receiver
         final boolean from_boot = intent.getBooleanExtra("FROM_BOOT", false);
 
         if(!from_boot){
             receiver = intent.getParcelableExtra("receiver");
         }
 
-        final SurveyDatabaseHandler dbHandler = new SurveyDatabaseHandler(getApplicationContext());
-        int svyCt = dbHandler.getSurveyCount();
-        List<Integer> IDs = dbHandler.getSurveyIDs();
-
+        // Do not attempt to update if there is not WiFi
         ConnectivityManager connManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo mWifi = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
 
         if (!mWifi.isConnected()) {
             Log.i("WIFI>>>", "WiFi not connected");
-            return; // If wifi is not connected do not try to update
+            return;
         }
 
+        // Close any user dialog notifications that might still be open
         Intent dialogClose = new Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS);
         sendBroadcast(dialogClose);
-
-        /*AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-        NotificationManager mNotificationManager =
-                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-
-        for(int j = 0; j < svyCt; j++) { // for all surveys
-            int survey_id = IDs.get(j);
-            int timeCt = dbHandler.getTimes(j + 1).size();
-            int dayCt  = dbHandler.getDays(j + 1).size();
-
-            try {
-                mNotificationManager.cancel(j);
-            }
-            catch(Exception ex) {
-                Log.i("DEBUG>>>", "Notification not canceled");
-            }
-
-            for(int d = 0; d < dayCt; d++){ // for every day that the survey is available
-
-                for(int k = 0; k < timeCt; k++) { // for all times in the curr day that survey is available
-                    AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-
-                    for(int i = 1; i <= 4; i++) { // for all iterations during the active time
-
-                        String partID = String.valueOf(survey_id) + // survey id
-                                String.valueOf(d) +                 // day
-                                String.valueOf(k);                  // time
-
-                        int intentID = Integer.parseInt(partID + String.valueOf(i));
-
-                        Intent notifIntent;
-                        notifIntent = new Intent(getApplicationContext(), NotificationService.class);
-                        notifIntent.putExtra("ID", survey_id);
-                        notifIntent.putExtra("PART_ID", partID);
-                        notifIntent.putExtra("ITER", i);
-
-                        PendingIntent notifPendingIntent = PendingIntent.getService(
-                                getApplicationContext(),
-                                intentID,
-                                notifIntent,
-                                PendingIntent.FLAG_CANCEL_CURRENT);
-
-                        // Cancel alarms
-                        try {
-                            alarmManager.cancel(notifPendingIntent);
-                        } catch (Exception e) {
-                            Log.e("ERROR>>> ", "AlarmManager update was not canceled. " + e.toString());
-                        }
-                    }
-                }
-            }
-        }
-
-        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());*/
-
-        Log.i("DEBUG>>>", "Before " + dbHandler.getSurveyIDs().toString());
 
         // Clear Survey Data
         dbHandler.deleteAll();
 
+        int x = dbHandler.getSurveyCount();
+        Log.i("DEBUG>>>", "number of surveys after clearing = " + String.valueOf(x));
+
         Log.i("DEBUG>>>", "Parse Query Starting");
         if(!from_boot) receiver.send(STATUS_RUNNING, Bundle.EMPTY);
 
-        // Get all surveys
+        // Import all active surveys from Parse
         final ParseQuery<ParseObject> query = new ParseQuery<>("SurveySummary");
         query.whereEqualTo("Active", true);
         query.findInBackground(new FindCallback<ParseObject>() {
             public void done(List<ParseObject> all_surveys, ParseException e) {
                 if (e == null) {
-                    final int surveyCt = all_surveys.size();
-                    bundle.putInt("SURVEYCT", surveyCt);
+                    final int surveyCt = all_surveys.size(); // total number of surveys to import
+                    bundle.putInt("SURVEYCT", surveyCt);     // add survey count to bundle to be sent
+                                                             // to the broadcast receiver in StartScreen
 
+                    // For all surveys...
                     for (int i = 0; i < surveyCt; i++) {
-                        //final int index = i;
-
+                        // Get all data for the current survey
                         ParseObject survey_listing = all_surveys.get(i);
+
                         final String name = survey_listing.getString("Category");
                         final List<Object> times = survey_listing.getList("Time");
                         final int duration = survey_listing.getInt("surveyActiveDuration");

@@ -5,69 +5,64 @@ import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.ResultReceiver;
-import android.preference.PreferenceManager;
-import android.util.Log;
-import android.widget.Toast;
-
-import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
 
 /**
  * Created by Natalie on 12/17/2014.
- */
+**/
+
 public class OnBoot extends BroadcastReceiver {
-    public static final int STATUS_BOOT = 3;
+    /**
+     * When the device shuts down all pending intents are lost, and thus all survey alarms. This class
+     * resets all the survey alarms and the alarm for the update service
+    **/
 
     @Override
     public void onReceive(Context context, Intent intent) {
-
-        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-
+        // Set alarm for the update service
         start_UpdatesService(context);
 
-        // Retrieve number of surveys from database
+        // Initialize the SQLit database and an alarm manager
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         final SurveyDatabaseHandler dbHandler = new SurveyDatabaseHandler(context);
+
+        // Retrive all survey IDs from the database
         List<Integer> survey_ids = dbHandler.getSurveyIDs();
 
-        // Create a repeating alarm for popup for every survey at the specified time
+        // For every survey set the an alarm for each of its active periods
         for (int k = 0; k < survey_ids.size(); k++) {
+            int survey_id = survey_ids.get(k);                  // current survey ID
+            List<String> times = dbHandler.getTimes(survey_id); // all start times for the current survey
+            List<Integer> days = dbHandler.getDays(survey_id);  // all days survey should have active periods
+            int dayCt = days.size();                            // number of days with active periods
+            int timeCt = times.size();                          // number of active periods
+            int duration = dbHandler.getDuration(survey_id);    // survey duration
 
-            int survey_id = survey_ids.get(k);
-            List<String> times = dbHandler.getTimes(survey_id);
-            List<Integer> days = dbHandler.getDays(survey_id);
-            int dayCt = days.size();
-            int timeCt = times.size();
-            int duration = dbHandler.getDuration(survey_id);
-
+            // For every day a survey can be active...
             for(int d = 0; d < dayCt; d++) {
-                int currDay = Integer.parseInt(String.valueOf(days.get(d))) + 1; // days are give 0-6, android uses 1-7
+
+                // The current day; days are give 0-6, android uses 1-7
+                int currDay = Integer.parseInt(String.valueOf(days.get(d))) + 1;
+
                 // Set first alarm for all survey times
                 for(int j = 0; j < timeCt; j++) {
-                    int hr  = Integer.parseInt(String.valueOf(times.get(j)).split(":")[0]);
-                    int min = Integer.parseInt(String.valueOf(times.get(j)).split(":")[1]);
+                    int hr  = Integer.parseInt(String.valueOf(times.get(j)).split(":")[0]); // start time hour
+                    int min = Integer.parseInt(String.valueOf(times.get(j)).split(":")[1]); // start time minute
 
-                    // Get curr time
+                    // Get current time calendar
                     Calendar curr_cal = Calendar.getInstance();
 
-                    // Get alarm time
+                    // Create alarm time calendar
                     Calendar cal = Calendar.getInstance();
                     cal.set(Calendar.DAY_OF_WEEK, currDay);
                     cal.set(Calendar.HOUR_OF_DAY, hr);
                     cal.set(Calendar.MINUTE, min);
                     cal.set(Calendar.SECOND, 0);
 
-                    // If it's after the alarm time, schedule starting alarm for next day
+                    // If it's after the alarm time, schedule starting alarm for the next week
                     if ( curr_cal.getTimeInMillis() > cal.getTimeInMillis()) {
-                        Log.i("TIME>>>", "\tSurvey alarm scheduled for next week");
                         cal.add(Calendar.DAY_OF_YEAR, 7); // add, not set!
 
                         // Check if any of the following alarms for this active period are not past
@@ -81,11 +76,15 @@ public class OnBoot extends BroadcastReceiver {
 
                             // If there is an iteration that isn't past the current time, schedule alarm
                             if ( curr_cal.getTimeInMillis() < cal2.getTimeInMillis()) {
+                                // Alarm iteration
                                 int iter = t + 1;
-                                String partID = String.valueOf(survey_id) + // survey id
-                                        String.valueOf(d) +         // day
-                                        String.valueOf(j);          // time
 
+                                // Parial ID for the pending intent
+                                String partID = String.valueOf(survey_id) + // survey id
+                                        String.valueOf(d) +                 // day
+                                        String.valueOf(j);                  // time
+
+                                // Full pending intent ID -- partial ID + iteration number
                                 int intentID = Integer.parseInt(partID + String.valueOf(iter));
 
                                 Intent notifIntent;
@@ -101,7 +100,6 @@ public class OnBoot extends BroadcastReceiver {
                                         notifIntent,
                                         PendingIntent.FLAG_CANCEL_CURRENT);
 
-                                Log.i("TIME>>>", "Secondary Alarm for " + String.valueOf(survey_id) + " = " + cal2.getTime().toString());
                                 // Set alarm for survey notification
                                 alarmManager.set(AlarmManager.RTC_WAKEUP, cal2.getTimeInMillis(), notifPendingIntent2);
 
@@ -110,9 +108,10 @@ public class OnBoot extends BroadcastReceiver {
                         }
                     }
 
-                    Log.i("TIME>>>", "Primary Alarm for " + String.valueOf(survey_id) + " = " + cal.getTime().toString());
-
+                    // Partial ID for the pending intent
                     String partID = String.valueOf(d) + String.valueOf(survey_id) + String.valueOf(j);
+
+                    // Full pending intent ID -- partial ID + iteration number
                     int intentID  = Integer.parseInt(partID + "1");
 
                     Intent notifIntent = new Intent(context, NotificationService.class);
@@ -128,10 +127,9 @@ public class OnBoot extends BroadcastReceiver {
                             PendingIntent.FLAG_CANCEL_CURRENT);
 
                     // Set alarm for survey notification
-                    alarmManager.set/*Repeating*/(
+                    alarmManager.set(
                             AlarmManager.RTC_WAKEUP,
                             cal.getTimeInMillis(),
-                            //7*alarmManager.INTERVAL_DAY,
                             notifPendingIntent);
                 }
             }
@@ -139,8 +137,12 @@ public class OnBoot extends BroadcastReceiver {
     }
 
     public void start_UpdatesService(Context context) {
+        /**
+         * This function sets an alarm for the update service
+        **/
+
         Intent serviceIntent = new Intent(context, UpdateService.class);
-        serviceIntent.putExtra("FROM_BOOT", true);
+        serviceIntent.putExtra("FROM_BOOT", true); // Let the service know that it was called from the OnBoot class
 
         PendingIntent pendingIntent = PendingIntent.getService(
                 context,
@@ -151,16 +153,12 @@ public class OnBoot extends BroadcastReceiver {
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         alarmManager.cancel(pendingIntent);
 
-        // Get random time
+        // Get random time between 12 AM and 4 AM
         Random rand = new Random();
 
-        // nextInt is normally exclusive of the top value,
-        // so add 1 to make it inclusive
         int randomHr  = rand.nextInt((4) + 1);
         int randomMin = rand.nextInt((59) + 1);
         int randomSec = rand.nextInt((59) + 1);
-
-        Log.i("RANDOM>>>", String.valueOf(randomHr) + ":" + String.valueOf(randomMin) + ":" + String.valueOf(randomSec));
 
         Calendar cal = Calendar.getInstance();
         cal.set(Calendar.HOUR_OF_DAY, randomHr);

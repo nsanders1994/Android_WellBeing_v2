@@ -9,6 +9,10 @@ import android.os.Handler;
 import android.os.ResultReceiver;
 
 public class UpdateResultReceiver extends ResultReceiver {
+    /**
+     * Handles the communication between the receiver in the start screen activity and the update service
+    **/
+
     private Receiver mReceiver;
 
     public UpdateResultReceiver(Handler handler) {

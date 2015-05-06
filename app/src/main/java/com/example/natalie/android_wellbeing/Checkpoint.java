@@ -1,25 +1,20 @@
 package com.example.natalie.android_wellbeing;
 
-import android.app.ActivityManager;
-import android.app.IntentService;
 import android.app.Service;
-import android.content.ComponentName;
 import android.content.Intent;
 import android.os.IBinder;
-import android.util.Log;
-import android.widget.Toast;
-
-import java.security.Provider;
 import java.util.Calendar;
 import java.util.List;
 
 /**
  * Created by Natalie on 4/14/2015.
- */
+**/
+
 public class Checkpoint extends Service {
-    /* After the user clicks a notification or a user dialog in order to access a survey, Checkpoint
-       is called to make sure the survey is still valid
-     */
+    /**
+     *  After the user clicks a notification or a user dialog in order to access a survey, Checkpoint
+     *  is called to make sure the survey is still valid
+    **/
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {

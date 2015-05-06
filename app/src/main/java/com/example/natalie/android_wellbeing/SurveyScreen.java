@@ -1,6 +1,9 @@
 package com.example.natalie.android_wellbeing;
 
 import android.app.ActionBar;
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.app.Activity;
 import android.content.Intent;
@@ -14,57 +17,70 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
-import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
-import java.util.Objects;
 
-/*
+/**
  * Created by Natalie on 2/16/2015.
- */
+**/
 
 public class SurveyScreen extends Activity {
-     TableLayout         surveyTable;
-     ArrayList<TableRow> ansRows   = new ArrayList<>();
-     ArrayList<CheckBox> ansChk    = new ArrayList<>();
-     ArrayList<SeekBar>  sliders   = new ArrayList<>();
-     ArrayList<TextView> sliderAns = new ArrayList<>();
-     EditText            textbox;
+    /**
+     * This activity displays the each question in the survey. To move between questions the user uses
+     * the 'back' and 'next buttons. When a new question needs to be displayed, the activity clears the
+     * TableView and programmatically builds the view for the new question. One Checkbox, Textbox,
+     * or Button question may be displayed per page while a maximum of three Slider questions can be
+     * displayed in one view.
+     **/
 
-     TableLayout.LayoutParams rowParam;
-     TableRow.LayoutParams    centerParam;
-     TableRow.LayoutParams    leftParam;
+     private TableLayout         surveyTable;                   // TableView within the layout that holds all question info
+     private ArrayList<TableRow> ansRows   = new ArrayList<>(); // TableRows used for answer info
+     private ArrayList<CheckBox> ansChk    = new ArrayList<>(); // CheckBoxes used for CheckBox question
+     private ArrayList<SeekBar>  sliders   = new ArrayList<>(); // SeekBars (sliders) used for Slider questions
+     private ArrayList<TextView> sliderAns = new ArrayList<>(); // TextViews for the slider options
+     private EditText            textbox;                       // EditText used for Textbox
 
-     int                 ID;
-     List<String>        ques_strs;
-     List<List<String>>  ans_str_lists;
-     List<List<Integer>> ans_val_lists;
-     List<List<String>>  ans_end_pts;
-     List<String>        ques_types;
-     List<Long>          tstamps;
-     List<String>        ansrs;
-     int                 ques_ct;
-     int []              ans_cts;
-     int                 ques_answered_ct  = 0;
-     int                 qNo = 0;
-     int                 vwNo = 0;
-     int []              q_in_view;
-     int                 maxVw;
-     long                lastTouch;
+     private TableLayout.LayoutParams rowParam;                 // Layout parameters for table rows
+     private TableRow.LayoutParams    centerParam;              // Centered parameters for data in table row
+     private TableRow.LayoutParams    leftParam;
+
+     private int                 ID;
+     private List<String>        ques_strs;
+     private List<List<String>>  ans_str_lists;
+     private List<List<Integer>> ans_val_lists;
+     private List<List<String>>  ans_end_pts;
+     private List<String>        ques_types;
+     private List<Long>          tstamps;
+     private List<String>        ansrs;
+     private int                 ques_ct;
+     private int []              ans_cts;
+     private int                 ques_answered_ct  = 0;
+     private int                 qNo = 0;
+     private int                 vwNo = 0;
+     private int []              q_in_view;
+     private int                 maxVw;
+     private long                lastTouch;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_survey_screen);
+
+        ConnectivityManager connManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo mWifi = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+
+        if (!mWifi.isConnected()) {
+            Toast.makeText(getApplicationContext(),
+                    "You have no WiFi! You will not be able to submit this survey",
+                    Toast.LENGTH_SHORT).show();
+        }
 
         lastTouch = Calendar.getInstance().getTimeInMillis();
 
@@ -103,7 +119,7 @@ public class SurveyScreen extends Activity {
 
             if(ques_types.get(i).equals("Slider")){
                 q_in_view[view]++;
-                if((i+1) < ques_ct && (q_in_view[view] == 4 || ques_types.get(i+1).equals("Button"))){
+                if((i+1) < ques_ct && (q_in_view[view] == 3 || ques_types.get(i+1).equals("Button"))){
                     view++;
                 }
             }
@@ -338,7 +354,6 @@ public class SurveyScreen extends Activity {
     }
 
     public void createCheckboxVw(){
-        Log.i("CHECKBOX>>", "It's a checkbox!");
         // Create Question Row
         TableRow quesRow = new TableRow(this);
         quesRow.setLayoutParams(rowParam);
@@ -481,7 +496,7 @@ public class SurveyScreen extends Activity {
                 sliders.get(sliderCt).setMax(ans_cts[i]);
 
                 // Initialize Answer
-                int index = ans_val_lists.get(qNo + sliderCt).indexOf(ansrs.get(i)); // get index of user's answer in answer list
+                int index = ans_val_lists.get(qNo + sliderCt).indexOf(Integer.parseInt(ansrs.get(i))); // get index of user's answer in answer list
 
                 if(index != -1) {
                     sliders.get(sliderCt).incrementProgressBy(index + 1); // set progress of slider to user's answer

@@ -40,9 +40,9 @@ public class WellBeing extends Application {
         // Initialize Parse
         Parse.enableLocalDatastore(this);
 
-        Parse.initialize(this, /*"wFcqaTXYYCeNqKJ8wswlwtXChEzJyFyBV7N5JOZX", "MomzqWhPQSVPNZ6hNjXtSSs6Lah5OMQCE8p4amsW");*/
-                "Z6S6iux9qyLGcCsAE3vuRvhHWDwFelxzT2nSqKWc",
-                "boXMTOaotk2HgGpxFLdNNPFw1d7WwB7c3G4nPHak");
+        Parse.initialize(this, "wFcqaTXYYCeNqKJ8wswlwtXChEzJyFyBV7N5JOZX", "MomzqWhPQSVPNZ6hNjXtSSs6Lah5OMQCE8p4amsW");
+                /*"Z6S6iux9qyLGcCsAE3vuRvhHWDwFelxzT2nSqKWc",
+                "boXMTOaotk2HgGpxFLdNNPFw1d7WwB7c3G4nPHak");*/
 
         final SurveyDatabaseHandler dbHandler = new SurveyDatabaseHandler(getApplicationContext());
 
@@ -71,6 +71,7 @@ public class WellBeing extends Application {
                         final int surveyVersion    = survey_listing.getInt("Version");              // Survey version
                         final List<Object> days    = survey_listing.getList("Days");                // Days survey has active times
 
+                        Log.i("DEBUG>>>", "Name = " + name);
                         // Get list of questions and their answers
                         ParseQuery<ParseObject> query2 = new ParseQuery<ParseObject>(table_name);
                         query2.orderByAscending("questionId");
@@ -78,7 +79,6 @@ public class WellBeing extends Application {
                             public void done(List<ParseObject> survey, ParseException e) {
                                 if (e == null) {
                                     int ques_ct = survey.size();
-                                    Log.i("DEBUG>>>>>", "ques_ct =" + String.valueOf(ques_ct));
                                     List<Object> ques = new ArrayList<>(ques_ct);       // Question string
                                     List<Object> ans = new ArrayList<>(ques_ct);        // Possible answer stings
                                     List<Object> type = new ArrayList<>(ques_ct);       // Type of question

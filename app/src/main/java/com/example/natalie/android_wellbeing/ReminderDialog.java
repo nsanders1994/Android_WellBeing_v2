@@ -1,9 +1,7 @@
 package com.example.natalie.android_wellbeing;
 
 import android.app.Activity;
-import android.app.AlarmManager;
 import android.app.AlertDialog;
-import android.app.PendingIntent;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -11,37 +9,35 @@ import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.os.Vibrator;
-import android.util.Log;
-import android.widget.Toast;
 
 /**
  * Created by Natalie on 12/17/2014.
- */
+**/
+
 public class ReminderDialog extends Activity {
+    /** This active creates a user dialog popup as the last reminder for the active period. The user
+     *  is able to either dismiss the reminder or go to the survey
+    **/
+
     private int ID = 0;
-    private int iteration = 0;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        Log.i("DEBUG>>>", "In reminder dialog");
-        // Get survey ID from caller intent
+        // Get survey ID from the caller intent
         Intent caller = getIntent();
         ID = caller.getIntExtra("ID", 1);
 
-        // Initialize Database
+        // Initialize SQLite database and the dialog builder
         final SurveyDatabaseHandler dbHandler = new SurveyDatabaseHandler(getApplicationContext());
         AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
 
-        dbHandler.setComplete(false, ID);
-
-        // Set title
+        // Set title for the dialog
         String title = dbHandler.getName(ID);
         alertDialogBuilder.setTitle(title + " Survey");
 
-        // set dialog message
+        // Set dialog message
         alertDialogBuilder
                 .setMessage("\nAre you ready to take your survey?\n")
                 .setNegativeButton("Dismiss", new DialogInterface.OnClickListener() {

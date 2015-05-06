@@ -15,6 +15,10 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
 public class SurveyDatabaseHandler extends SQLiteOpenHelper {
+    /**
+     * The handler for the SQLite database which stores all the surveys and their respective data
+    **/
+
     private static final int DATABASE_VERSION   = 4;
     private static final String DATABASE_NAME   = "WellbeingManager";
     private static final String TABLE_WELLBEING = "Wellbeing";
@@ -79,6 +83,9 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
     }
 
     public int getLastRowID(){
+        /**
+         * Return the last survey's ID
+        **/
 
         SQLiteDatabase db = getReadableDatabase();
         Cursor cursor = db.rawQuery("SELECT MAX(rowid) FROM " + TABLE_WELLBEING, null);
@@ -94,12 +101,20 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
     }
 
     public void deleteAll() {
+        /**
+         * Delete all surveys in the database
+        **/
+
         SQLiteDatabase db = getWritableDatabase();
         db.execSQL("DELETE FROM " + TABLE_WELLBEING);
         db.execSQL("DELETE FROM sqlite_sequence WHERE name='Wellbeing'");
     }
 
     public int getSurveyCount(){
+        /**
+         * Return the number of surveys in the database
+        **/
+
         SQLiteDatabase db = getReadableDatabase();
         Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_WELLBEING, null);
 
@@ -118,7 +133,11 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
     }
 
     public List<Integer> getSurveyIDs() {
-        List<Integer> ids = new ArrayList<Integer>();
+        /**
+         * Return a list of IDs for all surveys in the database
+        **/
+
+        List<Integer> ids = new ArrayList<>();
 
         SQLiteDatabase db = getWritableDatabase();
         Cursor cursor = db.rawQuery("SELECT rowid FROM " + TABLE_WELLBEING, null);
@@ -135,6 +154,10 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
     }
 
     public List<String> getTimes(int id){
+        /**
+         * Return a list of active times for the requested survey
+        **/
+
         SQLiteDatabase db = getReadableDatabase();
         Cursor cursor = db.rawQuery(
                 "SELECT " + KEY_POPUP_TIME +
@@ -155,6 +178,10 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
     }
 
     public List<Integer> getDays(int id){
+        /**
+         * Return a list of active days for the requested survey
+         **/
+
         SQLiteDatabase db = getReadableDatabase();
         Cursor cursor = db.rawQuery(
                 "SELECT " + KEY_DAYS +
@@ -182,6 +209,10 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
     }
 
     public int getDuration(int id){
+        /**
+         * Return the duration of the requested survey
+         **/
+
         SQLiteDatabase db = getReadableDatabase();
         Cursor cursor = db.rawQuery(
                 "SELECT " + KEY_DURATION +
@@ -191,7 +222,7 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
         );
 
         cursor.moveToFirst();
-        int dur = cursor.getInt(0); //Integer.parseInt(cursor.getString(cursor.getColumnIndex(KEY_POPUP_MIN)));
+        int dur = cursor.getInt(0);
 
         cursor.close();
         db.close();
@@ -200,6 +231,10 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
     }
 
     public String getName(int id){
+        /**
+         * Return the name of the requested survey
+         **/
+
         SQLiteDatabase db = getReadableDatabase();
         Cursor cursor = db.rawQuery(
                 "SELECT " + KEY_NAME +
@@ -218,6 +253,10 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
     }
 
     public List <String> getQuesList(int id){
+        /**
+         * Return a list of all the questions for the requested survey
+         **/
+
         SQLiteDatabase db = getReadableDatabase();
         Cursor cursor = db.rawQuery(
                 "SELECT " + KEY_QUES +
@@ -237,6 +276,10 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
     }
 
     public List< List<String> > getAnsLists(int id){
+        /**
+         * Return a list of multiple-choice answer lists for the requested survey
+         **/
+
         SQLiteDatabase db = getReadableDatabase();
         Cursor cursor = db.rawQuery(
                 "SELECT " + KEY_ANSRS +
@@ -262,6 +305,10 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
     }
 
     public List<String> getQuesTypes(int id) {
+        /**
+         * Return a list of the question types for the requested survey
+         **/
+
         SQLiteDatabase db = getReadableDatabase();
         Cursor cursor = db.rawQuery(
                 "SELECT " + KEY_TYPES +
@@ -281,6 +328,10 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
     }
 
     public boolean isCompleted(int id) {
+        /**
+         * Returns whether the requested survey is completed or not
+         **/
+
         SQLiteDatabase db = getReadableDatabase();
         Cursor cursor = db.rawQuery(
                 "SELECT " + KEY_COMPLETE +
@@ -304,6 +355,10 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
     }
 
     public List<String> getUserAns(int id) {
+        /**
+         * Return a list of the user's answers for the requested survey
+         **/
+
         SQLiteDatabase db = getReadableDatabase();
         Cursor cursor = db.rawQuery(
                 "SELECT " + KEY_USER_ANS +
@@ -334,6 +389,10 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
     }
 
     public List< List<Integer>> getAnsVals(int id) {
+        /**
+         * Return a list of answer value lists for the requested survey
+         **/
+
         SQLiteDatabase db = getReadableDatabase();
         Cursor cursor = db.rawQuery(
                 "SELECT " + KEY_ANS_VALS +
@@ -369,6 +428,10 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
     }
 
     public List<Long> getTStamps(int id) {
+        /**
+         * Return a list of timestamps (one per question) for the requested survey
+         **/
+
         SQLiteDatabase db = getReadableDatabase();
         Cursor cursor = db.rawQuery(
                 "SELECT " + KEY_TSTAMPS +
@@ -405,6 +468,10 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
     }
 
     public int getVersion(int id){
+        /**
+         * Return a list of active times for the requested survey
+         **/
+
         SQLiteDatabase db = getReadableDatabase();
         Cursor cursor = db.rawQuery(
                 "SELECT " + KEY_VERSION +
@@ -423,6 +490,10 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
     }
 
     public List<List<String>> getEndPts(int id){
+        /**
+         * Return a list of endpoints (used in slider questions) for the requested survey
+         **/
+
         SQLiteDatabase db = getReadableDatabase();
         Cursor cursor = db.rawQuery(
                 "SELECT " + KEY_ENDPTS +
@@ -448,6 +519,10 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
     }
 
     public int setComplete(boolean finished, int id) {
+        /**
+         * Set the specified survey as completed
+        **/
+
         SQLiteDatabase db = getWritableDatabase();
 
         ContentValues values = new ContentValues();
@@ -462,6 +537,10 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
     }
 
     public int storeAnswers(String ans, int id) {
+        /**
+         * Store the user's answers for the specified survey
+        **/
+
         SQLiteDatabase db = getWritableDatabase();
 
         ContentValues values = new ContentValues();
@@ -475,6 +554,10 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
     }
 
     public int storeTStamps(String tstamps, int id) {
+        /**
+         * Store the user's timestamps for the specified survey
+         **/
+
         SQLiteDatabase db = getWritableDatabase();
 
         ContentValues values = new ContentValues();

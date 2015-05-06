@@ -2,29 +2,23 @@ package com.example.natalie.android_wellbeing;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.content.SharedPreferences;
-import android.media.Ringtone;
-import android.media.RingtoneManager;
-import android.net.Uri;
 import android.os.Bundle;
-import android.os.Vibrator;
 import android.preference.PreferenceManager;
 import android.text.InputType;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
-import android.widget.Toast;
-
 import java.util.regex.Pattern;
 
 /**
- * Created by Natalie on 4/11/2015.
- */
+ * Created by Natalie Sanders on 4/11/2015.
+**/
 public class EmailDialog extends Activity {
-    /* The user is asked once to enter their email for administrative purposes */
+    /**
+     * The user is asked once to enter their email for administrative purposes
+    **/
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -78,11 +72,11 @@ public class EmailDialog extends Activity {
 
                 // If there's no user input, inform user
                 if (input.getText().toString().trim().length() == 0) {
-                    alertDialog.setMessage("You must enter an email address\n\n");
+                    alertDialog.setMessage("\nYou must enter an email address\n\n");
 
                 // If the input string does not follow the standard email regex, inform user
                 } else if (!EMAIL_ADDRESS_PATTERN.matcher(email).matches()) {
-                    alertDialog.setMessage("Invalid email address\n\n");
+                    alertDialog.setMessage("\nInvalid email address\n\n");
 
                 // Otherwise, the input email is valid and is stored in shared preferences
                 } else {

@@ -1,33 +1,31 @@
 package com.example.natalie.android_wellbeing;
 
-import android.app.AlarmManager;
-import android.app.PendingIntent;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
-import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.app.Activity;
 import android.content.Intent;
+import android.telephony.TelephonyManager;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.parse.ParseObject;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
-import bolts.Task;
 
 public class FinishScreen extends Activity {
+    /**
+     * This activity produces the end screen of the survey, displayed after the user finishes the
+     * last question. It allows the user to submit the survey to Parse or go back to the last question.
+    **/
+
     int                   ans_ct = 0;   // the number of questions answered
     List<String>          ans;          // list of the user's answers
     List<Long>            tstamp;       // list of the timestamps for when the user answered
@@ -43,7 +41,7 @@ public class FinishScreen extends Activity {
         dbHandler = new SurveyDatabaseHandler(getApplicationContext());
         setContentView(R.layout.activity_finish_screen);
 
-        // Initialize lastTouch
+        // Initialize lastTouch variable
         lastTouch = Calendar.getInstance().getTimeInMillis();
 
         // Initialize layout widgets
@@ -69,6 +67,7 @@ public class FinishScreen extends Activity {
         submitBttn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+
                 // If the survey is still active...
                 if(checkSurveyActive()) {
                     // Check that the app has an email for the user
@@ -80,23 +79,38 @@ public class FinishScreen extends Activity {
                         startActivity(intent);
                     }
 
-                    // Notify the user that the survey is submitted
-                    Toast.makeText(getApplicationContext(), "The survey has been submitted.", Toast.LENGTH_SHORT).show();
+                    ConnectivityManager connManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+                    NetworkInfo mWifi = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
 
-                    // Submit survey to parse website
-                    sendToParse();
+                    if (!mWifi.isConnected()) {
+                        Toast.makeText(getApplicationContext(),
+                                "You have no WiFi! Could not submit survey.Your answers have been saved.",
+                                Toast.LENGTH_SHORT).show();
 
-                    // Set survey to completed
-                    dbHandler.setComplete(true, id);
+                        //Return to the home screen
+                        Intent intent = new Intent(FinishScreen.this, StartScreen.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                        startActivity(intent);
+                    }
+                    else{
+                        // Notify the user that the survey is submitted
+                        Toast.makeText(getApplicationContext(), "The survey has been submitted.", Toast.LENGTH_SHORT).show();
 
-                    // Clear answer and timestamp lists
-                    dbHandler.storeAnswers("empty", id);
-                    dbHandler.storeTStamps("empty", id);
+                        // Submit survey to parse website
+                        sendToParse();
 
-                    // Return to home screen
-                    Intent intent = new Intent(FinishScreen.this, StartScreen.class);
-                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                    startActivity(intent);
+                        // Set survey to completed
+                        dbHandler.setComplete(true, id);
+
+                        // Clear answer and timestamp lists
+                        dbHandler.storeAnswers("empty", id);
+                        dbHandler.storeTStamps("empty", id);
+
+                        // Return to home screen
+                        Intent intent = new Intent(FinishScreen.this, StartScreen.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                        startActivity(intent);
+                    }
                 }
                 else{
                     // Notify the user that the survey is no longer active
@@ -157,7 +171,9 @@ public class FinishScreen extends Activity {
 
     @Override
     public void onBackPressed() {
-        // Perform same action as if the user had pressed the back button widget
+        /**
+         * Perform same action as if the user had pressed the back button widget
+        **/
 
         // Check that the survey is still active
         checkSurveyActive();
@@ -184,19 +200,22 @@ public class FinishScreen extends Activity {
 
 
     public void sendToParse() {
-        /* Sends all the survey data and results to be stored in Parse*/
+        /**
+         * Sends all the survey data and results to be stored in Parse
+        **/
 
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
         String email            = prefs.getString(getString(R.string.user_email), "ERROR"); // user email
-        String app_version      = getResources().getString(R.string.app_version);           // app version ID
-        List<String> ques_types = dbHandler.getQuesTypes(id);                               // question types for this survey
-        String deviceID         = Settings.Secure.getString(this.getContentResolver(),      // Android device ID
-                                                    Settings.Secure.ANDROID_ID);
+        String app_version      = getResources().getString(R.string.app_version);                   // app version ID
+        List<String> ques_types = dbHandler.getQuesTypes(id);             // question types for this survey
+
+        TelephonyManager telephonyManager = (TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE);
+        String deviceID = telephonyManager.getDeviceId(); // Android IMEI
 
         // For all questions in the survey...
         for(int i = 0; i < quesCt; i++) {
             List<String> ans_array = new ArrayList<>();
-            ParseObject ques = new ParseObject("AllSurveyResponses");
+            ParseObject ques = new ParseObject("SurveyResponses");
 
             ques.put("appID", app_version);              // add the app version ID to the response table
             ques.put("userEmail", email);                // add the user's email to the response table
@@ -232,11 +251,12 @@ public class FinishScreen extends Activity {
     }
 
     public boolean checkSurveyActive(){
-        /* Checks if the survey is still active. If it has become inactive, allow the user to continue
-           to fill out the survey as long as the app does not remain idle for more than 5 minutes
-           (The user must be actively filling out the survey to keep it open if it is past its
-           expiration)
-         */
+        /**
+         * Checks if the survey is still active. If it has become inactive, allow the user to continue
+         * to fill out the survey as long as the app does not remain idle for more than 5 minutes
+         * (The user must be actively filling out the survey to keep it open if it is past its
+         * expiration)
+        **/
 
         long curr_time = Calendar.getInstance().getTimeInMillis();  // the current time
         long t_diff = curr_time - lastTouch; // the difference btw the current time and the time the app was last interacted with

@@ -44,7 +44,7 @@ public class NotificationService extends IntentService {
 
         // If the current time is not valid for the requested survey (an update may have occurred),
         // exit the service
-        if(!Utilities.validTime(getApplicationContext(),ID)){
+        if(!Utilities.timeValid(getApplicationContext(),ID)){
             return;
         }
 
@@ -110,7 +110,7 @@ public class NotificationService extends IntentService {
         }
 
         // Show current notification/dialog
-        if(!dbHandler.isCompleted(ID) && Utilities.validTime(getApplicationContext(), ID)) {
+        if(!dbHandler.isCompleted(ID) && Utilities.surveyOpen(getApplicationContext(), ID)) {
             // If it is iteration 1, 2, or 3, send a notification
             if(iteration < 4) {
 
@@ -143,7 +143,7 @@ public class NotificationService extends IntentService {
 
             }
             // Otherwise, send a user dialog
-            else if(iteration == 4 && Utilities.validTime(getApplicationContext(), ID)){
+            else if(iteration == 4 && Utilities.surveyOpen(getApplicationContext(), ID)){
                 Intent i = new Intent(NotificationService.this, ReminderDialog.class);
                 i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 i.putExtra("ID", ID);

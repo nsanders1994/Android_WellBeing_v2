@@ -10,18 +10,21 @@
     android:background="#50000000"
     android:id="@+id/layoutSurvey">
 
-
-    <TableLayout
+    <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/scrollView1"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
-        android:layout_above="@+id/bttnNext"
-        android:layout_marginTop="5dp"
-        android:gravity="center_horizontal"
-        android:padding="5dip"
-        android:id="@+id/tableAns">
-    </TableLayout>
+        android:layout_above="@+id/bttnBack"
+        android:layout_marginBottom="15dp">
+        <TableLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:gravity="center_horizontal"
+            android:padding="5dip"
+            android:id="@+id/tableAns">
+        </TableLayout>
+    </ScrollView>
 
     <Button
         android:layout_width="wrap_content"

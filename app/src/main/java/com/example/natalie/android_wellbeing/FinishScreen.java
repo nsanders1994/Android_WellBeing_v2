@@ -144,7 +144,7 @@ public class FinishScreen extends Activity {
                     temp2.addAll(tstamp);
 
                     // Store answers and timestamps in the database
-                    dbHandler.storeAnswers(Utilities.join(temp1, "%nxt%"), id);
+                    dbHandler.storeAnswers(Utilities.join(temp1, "`nxt`"), id);
                     dbHandler.storeTStamps(Utilities.join(temp2, ","), id);
                     intent.putExtra("ID", id);
 
@@ -188,7 +188,7 @@ public class FinishScreen extends Activity {
         temp2.addAll(tstamp);
 
         // Store answers and timestamps in the database
-        dbHandler.storeAnswers(Utilities.join(temp1, "%nxt%"), id);
+        dbHandler.storeAnswers(Utilities.join(temp1, "`nxt`"), id);
         dbHandler.storeTStamps(Utilities.join(temp2, ","), id);
         intent.putExtra("ID", id);
 
@@ -262,7 +262,7 @@ public class FinishScreen extends Activity {
         long t_diff = curr_time - lastTouch; // the difference btw the current time and the time the app was last interacted with
 
         // If the survey is still active...
-        if(Utilities.validTime(getApplicationContext(), id)){
+        if(Utilities.surveyOpen(getApplicationContext(), id)){
             lastTouch = curr_time; // reset the lastTouch time
             return true;           // return true that the survey is still active
         }

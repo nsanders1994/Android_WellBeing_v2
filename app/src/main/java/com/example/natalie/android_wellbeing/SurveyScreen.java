@@ -172,7 +172,7 @@ public class SurveyScreen extends Activity {
                         temp2.addAll(tstamps);
 
                         // Store answers and timestamps
-                        dbHandler.storeAnswers(Utilities.join(temp1, "%nxt%"), ID);
+                        dbHandler.storeAnswers(Utilities.join(temp1, "`nxt`"), ID);
                         dbHandler.storeTStamps(Utilities.join(temp2, ","), ID);
 
                         intent.putExtra("CT", ques_answered_ct);
@@ -215,7 +215,7 @@ public class SurveyScreen extends Activity {
                         temp2.addAll(tstamps);
 
                         // Store answers and timestamps
-                        dbHandler.storeAnswers(Utilities.join(temp1, "%nxt%"), ID);
+                        dbHandler.storeAnswers(Utilities.join(temp1, "`nxt`"), ID);
                         dbHandler.storeTStamps(Utilities.join(temp2, ","), ID);
 
                         Intent intent = new Intent(SurveyScreen.this, StartScreen.class);
@@ -650,7 +650,7 @@ public class SurveyScreen extends Activity {
         long curr_time = Calendar.getInstance().getTimeInMillis();
         long t_diff = curr_time - lastTouch;
 
-        if(Utilities.validTime(getApplicationContext(), ID)){
+        if(Utilities.surveyOpen(getApplicationContext(), ID)){
             Log.i("TIME>>>", "valid time");
             lastTouch = curr_time;
             return true;
@@ -722,7 +722,7 @@ public class SurveyScreen extends Activity {
                 temp2.addAll(tstamps);
 
                 // Store answers and timestamps
-                dbHandler.storeAnswers(Utilities.join(temp1, "%nxt%"), ID);
+                dbHandler.storeAnswers(Utilities.join(temp1, "`nxt`"), ID);
                 dbHandler.storeTStamps(Utilities.join(temp2, ","), ID);
 
                 Intent intent = new Intent(SurveyScreen.this, StartScreen.class);

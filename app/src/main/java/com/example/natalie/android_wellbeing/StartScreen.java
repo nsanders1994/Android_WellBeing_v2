@@ -151,7 +151,7 @@ public class StartScreen extends Activity implements UpdateResultReceiver.Receiv
                 int curr_id = survey_ids.get(position);
 
                 // If the survey is active, take the user to the survey
-                if(Utilities.validTime(getApplicationContext(), curr_id)){
+                if(Utilities.surveyOpen(getApplicationContext(), curr_id)){
                     Intent intent = new Intent(StartScreen.this, SurveyScreen.class);
                     intent.putExtra("ID", survey_ids.get(position));
                     startActivity(intent);
@@ -336,7 +336,7 @@ public class StartScreen extends Activity implements UpdateResultReceiver.Receiv
             }
 
             // Color code available vs. unavailable surveys
-            if(Utilities.validTime(getApplicationContext(), arg0 + 1)){
+            if(Utilities.surveyOpen(getApplicationContext(), arg0 + 1)){
                 time.setTextColor(getResources().getColor(android.R.color.black));
                 name.setTextColor(getResources().getColor(android.R.color.black));
             }

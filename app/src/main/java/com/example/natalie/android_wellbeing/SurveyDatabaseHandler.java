@@ -267,7 +267,7 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
 
         cursor.moveToFirst();
         String ques_str = cursor.getString(0); //cursor.getString(cursor.getColumnIndex(KEY_BASE_QUES));
-        List<String> ques_list = Arrays.asList(ques_str.split("%%"));
+        List<String> ques_list = Arrays.asList(ques_str.split("`"));
 
         cursor.close();
         db.close();
@@ -290,12 +290,12 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
 
         cursor.moveToFirst();
         String ans_str = cursor.getString(0);
-        String [] ans_array = ans_str.split("%nxt%");
+        String [] ans_array = ans_str.split("`nxt`");
 
         int ques_ct = ans_array.length;
         List< List<String> > ans_list = new ArrayList<List<String>>();
         for(int i = 0; i < ques_ct; i++) {
-            ans_list.add(i, Arrays.asList(ans_array[i].split("%%")));
+            ans_list.add(i, Arrays.asList(ans_array[i].split("`")));
         }
 
         cursor.close();
@@ -319,7 +319,7 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
 
         cursor.moveToFirst();
         String type_str = cursor.getString(0);
-        List <String> type_list = Arrays.asList(type_str.split("%%"));
+        List <String> type_list = Arrays.asList(type_str.split("`"));
 
         cursor.close();
         db.close();
@@ -372,7 +372,7 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
         List <String> ans_List = new ArrayList<>();
 
         if(!ans_str.equals("empty")) {
-            ans_List = Arrays.asList(ans_str.split("%nxt%"));
+            ans_List = Arrays.asList(ans_str.split("`nxt`"));
         }
         else {
             int qCt = getQuesList(id).size();
@@ -403,14 +403,21 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
 
         cursor.moveToFirst();
         String    ansVal_str   = cursor.getString(0);
-        String [] ansVal_array = ansVal_str.split("%nxt%");
+        Log.i("DEBUG>>>", ansVal_str.toString());
+        String [] ansVal_array = ansVal_str.split("`nxt`");
+
+        Log.i("DEBUG>>>", String.valueOf(ansVal_array.length));
+        for(int k = 0; k < ansVal_array.length; k++){
+            Log.i("DEBUG>>>", String.valueOf(ansVal_array[k]));
+        }
+
 
         int ques_ct = ansVal_array.length;
         List< List<Integer> > ansVal_list = new ArrayList<>();
 
         for(int i = 0; i < ques_ct; i++) {
             List<Integer> ansVal_intList = new ArrayList<>();
-            List<String>  ansVal_strList = Arrays.asList(ansVal_array[i].split("%%"));
+            List<String>  ansVal_strList = Arrays.asList(ansVal_array[i].split("`"));
             int ansCt = ansVal_strList.size();
 
             for(int j = 0; j < ansCt; j++) {
@@ -504,12 +511,12 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
 
         cursor.moveToFirst();
         String endpts_str = cursor.getString(0);
-        String [] endpts_array = endpts_str.split("%nxt%");
+        String [] endpts_array = endpts_str.split("`nxt`");
 
         int endpts_ct = endpts_array.length;
         List< List<String> > ans_list = new ArrayList<>();
         for(int i = 0; i < endpts_ct; i++) {
-            ans_list.add(i, Arrays.asList(endpts_array[i].split("%%")));
+            ans_list.add(i, Arrays.asList(endpts_array[i].split("`")));
         }
 
         cursor.close();

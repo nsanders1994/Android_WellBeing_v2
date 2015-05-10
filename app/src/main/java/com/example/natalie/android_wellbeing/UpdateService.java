@@ -114,25 +114,25 @@ public class UpdateService extends IntentService {
                                             ansVals.add(-1);
                                         }
                                         else{
-                                            ans.add(Utilities.join(curr_ques.getList("options"), "%%"));
-                                            ansVals.add(Utilities.join(curr_ques.getList("numericScale"), "%%"));
+                                            ans.add(Utilities.join(curr_ques.getList("options"), "`"));
+                                            ansVals.add(Utilities.join(curr_ques.getList("numericScale"), "`"));
                                         }
 
                                         List<Object> temp = curr_ques.getList("endPoints");
                                         if(temp.size() != 0){
-                                            endpts.add(Utilities.join(temp, "%%"));
+                                            endpts.add(Utilities.join(temp, "`"));
                                         }else{
-                                            endpts.add("-%%-");
+                                            endpts.add("-`-");
                                         }
                                     }
 
 
 
-                                    String ques_str = Utilities.join(ques, "%%");
-                                    String type_str = Utilities.join(type, "%%");
-                                    String ans_str = Utilities.join(ans, "%nxt%");
-                                    String ansVal_str = Utilities.join(ansVals, "%nxt%");
-                                    String endPts_str = Utilities.join(endpts, "%nxt%");
+                                    String ques_str = Utilities.join(ques, "`");
+                                    String type_str = Utilities.join(type, "`");
+                                    String ans_str = Utilities.join(ans, "`nxt`");
+                                    String ansVal_str = Utilities.join(ansVals, "`nxt`");
+                                    String endPts_str = Utilities.join(endpts, "`nxt`");
 
                                     // Store Survey
                                     dbHandler.createSurvey(

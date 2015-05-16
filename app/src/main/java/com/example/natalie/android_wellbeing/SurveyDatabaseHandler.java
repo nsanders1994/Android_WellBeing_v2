@@ -54,13 +54,13 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
                 + KEY_USER_ANS    + " STRING,"
                 + KEY_ANS_VALS    + " STRING,"
                 + KEY_TSTAMPS     + " STRING,"
-                + KEY_VERSION     + " INTEGER,"
+                + KEY_VERSION     + " REAL,"
                 + KEY_DAYS        + " STRING,"
                 + KEY_ENDPTS      + " STRING)");
     }
 
     public void createSurvey(String times, int dur, String name, String ques, String ans,
-                             String types, String ansVals, int version, String days, String endpts) {
+                             String types, String ansVals, float version, String days, String endpts) {
         SQLiteDatabase db = getWritableDatabase();
         ContentValues values = new ContentValues();
 
@@ -474,7 +474,7 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
         return tstamp_longList;
     }
 
-    public int getVersion(int id){
+    public float getVersion(int id){
         /**
          * Return a list of active times for the requested survey
          **/
@@ -488,7 +488,7 @@ public class SurveyDatabaseHandler extends SQLiteOpenHelper {
         );
 
         cursor.moveToFirst();
-        int version = cursor.getInt(0);
+        float version = cursor.getFloat(0);
 
         cursor.close();
         db.close();

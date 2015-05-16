@@ -68,7 +68,8 @@ public class WellBeing extends Application {
                         final List<Object> times   = survey_listing.getList("Time");                // Active times of survey
                         final int duration         = survey_listing.getInt("surveyActiveDuration"); // Duration of active time
                         final String table_name    = survey_listing.getString("Survey");            // Survey name
-                        final int surveyVersion    = survey_listing.getInt("Version");              // Survey version
+                        final Number version       = survey_listing.getNumber("Version");           // Survey version
+                        final float surveyVersion  = version.floatValue();
                         final List<Object> days    = survey_listing.getList("Days");                // Days survey has active times
 
                         Log.i("DEBUG>>>", "Name = " + name);
@@ -131,6 +132,8 @@ public class WellBeing extends Application {
                                             Utilities.join(days, ","),
                                             endPts_str
                                     );
+
+                                    Log.i("DEBUG>>", "Version # = " + String.valueOf(surveyVersion));
 
                                     // Set alarms for the survey notifications
                                     int survey_id = dbHandler.getLastRowID();

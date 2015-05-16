@@ -10,6 +10,7 @@ import android.provider.Settings;
 import android.app.Activity;
 import android.content.Intent;
 import android.telephony.TelephonyManager;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -31,7 +32,7 @@ public class FinishScreen extends Activity {
     List<Long>            tstamp;       // list of the timestamps for when the user answered
     int                   quesCt;       // the number of questions in the survey
     int                   id;           // the current survey's ID
-    int                   version;      // the current survey's version number
+    float                 version;      // the current survey's version number
     SurveyDatabaseHandler dbHandler;    // handler for the SQLite database
     long                  lastTouch;    // keeps track of when the user last interacted with the app
 
@@ -58,6 +59,7 @@ public class FinishScreen extends Activity {
         ans     = dbHandler.getUserAns(id);
         tstamp  = dbHandler.getTStamps(id);
         version = dbHandler.getVersion(id);
+        Log.i("DEBUG>>", "Version # in Finish = " + String.valueOf(version));
         quesCt  = ans.size();
 
         // Display user's progress on the survey

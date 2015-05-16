@@ -87,7 +87,8 @@ public class UpdateService extends IntentService {
                         final List<Object> times = survey_listing.getList("Time");
                         final int duration = survey_listing.getInt("surveyActiveDuration");
                         final String table_name = survey_listing.getString("Survey");
-                        final int surveyVersion = survey_listing.getInt("Version");
+                        final Number version = survey_listing.getNumber("Version");
+                        final float surveyVersion = version.floatValue();
                         final List<Object> days = survey_listing.getList("Days");
 
                         // Get list of questions and their answers

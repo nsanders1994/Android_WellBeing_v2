@@ -19,6 +19,8 @@ public class Checkpoint extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         int id = intent.getIntExtra("ID", 1);   // requested survey's ID
+
+        /*
         SurveyDatabaseHandler dbHandler = new SurveyDatabaseHandler(getApplicationContext());
 
         // Get specified survey's active times, the active time duration, and its name
@@ -66,10 +68,12 @@ public class Checkpoint extends Service {
 
         // Specifies whether the survey has already been completed for the most recent active time
         boolean completed = dbHandler.isCompleted(id);
+        */
 
+        boolean valid = Utilities.surveyOpen(getApplicationContext(), id);
         // If it is currently an active time and the survey has not been completed, take the user to
         // the requested survey
-        if(valid && !completed) {
+        if(valid) {// && !completed) {
             Intent surveyIntent = new Intent(Checkpoint.this, SurveyScreen.class);
             surveyIntent.putExtra("ID", id);
             surveyIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);

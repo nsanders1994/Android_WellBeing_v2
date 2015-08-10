@@ -1,9 +1,6 @@
 package com.example.natalie.android_wellbeing;
 
-import android.app.ProgressDialog;
-import android.content.BroadcastReceiver;
-import android.content.IntentFilter;
-import android.media.Image;
+import android.app.DialogFragment;
 import android.os.Bundle;
 import android.app.Activity;
 import android.app.AlarmManager;
@@ -131,10 +128,12 @@ public class StartScreen extends Activity implements UpdateResultReceiver.Receiv
         // If no email is stored for the user, start the EmailDialog activity to get the user's email
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
         boolean emailStored = prefs.getBoolean(getString(R.string.emailStored), false);
+        boolean languageStored = prefs.getBoolean(getString(R.string.languageStored), false);
 
-        if(!emailStored) {
-            Intent intent = new Intent(StartScreen.this, EmailDialog.class);
-            startActivity(intent);
+        if(!emailStored || !languageStored) {
+            DialogFragment newFragment = new PreferenceDialog();
+            newFragment.setCancelable(false);
+            newFragment.show(getFragmentManager(), "preferences");
         }
 
         // List for a user click on the ListView
@@ -240,73 +239,101 @@ public class StartScreen extends Activity implements UpdateResultReceiver.Receiv
             int dayCt  = days.size();                                       // number of active days
             String timeStr = "";                                            // time/s string
             String dayStr  = "";                                            // day/s string
+            String allDayStr = "24/7, unlimited submissions";               // for 24-hr surveys
 
-            // Create a string listing all days the survey is active
-            for(int d = 0; d < dayCt; d++) {
-                int currDay = days.get(d) + 1; // 1 is added because provided values are 0-6, Android uses 1-7
-                switch(currDay){
-                    case 1:
-                        dayStr += "Su";
-                        break;
-                    case 2:
-                        dayStr += "M";
-                        break;
-                    case 3:
-                        dayStr += "T";
-                        break;
-                    case 4:
-                        dayStr += "W";
-                        break;
-                    case 5:
-                        dayStr += "R";
-                        break;
-                    case 6:
-                        dayStr += "F";
-                        break;
-                    case 7:
-                        dayStr += "S";
-                        break;
+            if (days.get(0) != -1) {
+                // Create a string listing all days the survey is active
+                for(int d = 0; d < dayCt; d++) {
+                    int currDay = days.get(d) + 1; // 1 is added because provided values are 0-6, Android uses 1-7
+                    switch(currDay){
+                        case 1:
+                            dayStr += getString(R.string.sun);
+                            break;
+                        case 2:
+                            dayStr += getString(R.string.mon);
+                            break;
+                        case 3:
+                            dayStr += getString(R.string.tue);
+                            break;
+                        case 4:
+                            dayStr += getString(R.string.wed);
+                            break;
+                        case 5:
+                            dayStr += getString(R.string.thu);
+                            break;
+                        case 6:
+                            dayStr += getString(R.string.fri);
+                            break;
+                        case 7:
+                            dayStr += getString(R.string.sat);
+                            break;
+                    }
                 }
+
+                // Create a string listing all the active period times
+                for(int j = 0; j < timeCt; j++){
+                    // Calculate survey start time
+                    int milhr0 = Integer.parseInt(times.get(j).split(":")[0]);
+                    int min0 = Integer.parseInt(times.get(j).split(":")[1]);
+
+                    Calendar calendar0 = Calendar.getInstance();
+                    calendar0.set(Calendar.HOUR_OF_DAY, milhr0);
+                    calendar0.set(Calendar.MINUTE, min0);
+
+                    final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+                    String language = prefs.getString(getString(R.string.user_language), "English");
+
+                    int hr0;
+                    String zone0 = "";
+                    if(language.equals("Français")){ // 24-hr time
+                        hr0 = calendar0.get(Calendar.HOUR);
+                    }
+                    else {
+                        hr0 = calendar0.get(Calendar.HOUR) == 0 ? 12 : calendar0.get(Calendar.HOUR);
+                        zone0 = (calendar0.get(Calendar.AM_PM) == Calendar.AM) ? " AM" : " PM";
+
+                    }
+
+                    String t0 = String.valueOf(hr0) + ":" +
+                            ("00" + min0).substring(String.valueOf(min0).length()) + zone0;
+
+                    // Calculate survey closing time
+                    int duration = dbHandler.getDuration(arg0 + 1);
+
+                    Calendar calendar1 = Calendar.getInstance();
+                    calendar1.set(Calendar.HOUR_OF_DAY, milhr0);
+                    calendar1.set(Calendar.MINUTE, min0 + duration);
+
+                    int hr1;
+                    String zone1 = "";
+                    if(language.equals("Français")){ // 24-hr time
+                        hr1 = calendar1.get(Calendar.HOUR);
+                    }
+                    else {
+                        hr1 = calendar1.get(Calendar.HOUR) == 0 ? 12 : calendar1.get(Calendar.HOUR);
+                        zone1 = (calendar1.get(Calendar.AM_PM) == Calendar.AM) ? " AM" : " PM";
+
+                    }
+
+                    int min1     = calendar1.get(Calendar.MINUTE);
+                    String t1    = String.valueOf(hr1) + ":" +
+                            ("00" + min1).substring(String.valueOf(min1).length()) + zone1;
+
+                    // Add to time string
+                    if(j == 0) timeStr = t0 + "-" + t1;
+                    else timeStr = timeStr + ", " + t0 + "-" + t1;
+                }
+
+                // Set time text view
+                time.setText(dayStr + " " + timeStr);
+            }
+            else {
+                // Set time text view
+                time.setText(allDayStr);
             }
 
-            // Create a string listing all the active period times
-            for(int j = 0; j < timeCt; j++){
-                // Calculate survey start time
-                int milhr0 = Integer.parseInt(times.get(j).split(":")[0]);
-                int min0 = Integer.parseInt(times.get(j).split(":")[1]);
-
-                Calendar calendar0 = Calendar.getInstance();
-                calendar0.set(Calendar.HOUR_OF_DAY, milhr0);
-                calendar0.set(Calendar.MINUTE, min0);
-
-                int hr0      = calendar0.get(Calendar.HOUR) == 0 ? 12 : calendar0.get(Calendar.HOUR);
-                String zone0 = (calendar0.get(Calendar.AM_PM) == Calendar.AM) ? "AM" : "PM";
-                String t0    = String.valueOf(hr0) + ":" +
-                               ("00" + min0).substring(String.valueOf(min0).length()) + " " +
-                               zone0;
-
-                // Calculate survey closing time
-                int duration = dbHandler.getDuration(arg0 + 1);
-
-                Calendar calendar1 = Calendar.getInstance();
-                calendar1.set(Calendar.HOUR_OF_DAY, milhr0);
-                calendar1.set(Calendar.MINUTE, min0 + duration);
-
-                int hr1      = calendar1.get(Calendar.HOUR) == 0 ? 12 : calendar1.get(Calendar.HOUR);
-                int min1     = calendar1.get(Calendar.MINUTE);
-                String zone1 = (calendar1.get(Calendar.AM_PM) == Calendar.AM) ? "AM" : "PM";
-                String t1    = String.valueOf(hr1) + ":" +
-                               ("00" + min1).substring(String.valueOf(min1).length()) + " " +
-                               zone1;
-
-                // Add to time string
-                if(j == 0) timeStr = t0 + "-" + t1;
-                else timeStr = timeStr + ", " + t0 + "-" + t1;
-            }
-
-            // Set text views;
+            // Set name text view
             String name_str = dbHandler.getName(arg0 + 1);
-            time.setText(dayStr + " " + timeStr);
             name.setText(name_str);
 
             // Set pictures

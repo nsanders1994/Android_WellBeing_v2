@@ -59,6 +59,8 @@
             android:theme="@android:style/Theme.Holo.Light.Dialog.NoActionBar" >
         </activity>
 
+
+
         <service android:name=".NotificationService" />
         <service android:name=".UpdateService"/>
         <service android:name=".Checkpoint"/>

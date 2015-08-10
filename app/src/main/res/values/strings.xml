@@ -10,15 +10,32 @@
     <string name="back">Back</string>
     <string name="submit">Submit</string>
     <string name="okay">OK</string>
-    <string name="progress">#/# Questions Completed</string>
+    <string name="progress"> Questions Completed</string>
     <string name="survey_name">Survey</string>
     <string name="survey_time">Time</string>
     <string name="finish">Thank you for your responses</string>
     <string name="Checkmark">Checkmark</string>
     <string name="prev_started">previously_started</string>
+    <string name="enter_email">Email Address:</string>
+    <string name="choose_language">Preferred Language:</string>
     <string name="user_email">user_email</string>
+    <string name="user_language">user_language</string>
     <string name="emailStored">emailStored</string>
-    <string name="app_version">ND-WB-SAV-2015-05-08</string>
+    <string name="languageStored">languagedStored</string>
+    <string name="app_version">ND-WB-SAV-2015-08-10</string>
     <string name="importCt">0</string>
     <string name="notificationIDs">NA</string>
+    <string name="example_email">janedoe@gmail.com</string>
+    <string name="mon">M</string>
+    <string name="tue">T</string>
+    <string name="wed">W</string>
+    <string name="thu">R</string>
+    <string name="fri">F</string>
+    <string name="sat">S</string>
+    <string name="sun">Su</string>
+    <string-array name="spinner_entries">
+        <item>English</item>
+        <item>Español</item>
+        <item>Français</item>
+    </string-array>
 </resources>

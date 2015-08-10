@@ -73,15 +73,6 @@ public class SurveyScreen extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_survey_screen);
 
-        ConnectivityManager connManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo mWifi = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
-
-        if (!mWifi.isConnected()) {
-            Toast.makeText(getApplicationContext(),
-                    "You have no WiFi! You will not be able to submit this survey",
-                    Toast.LENGTH_SHORT).show();
-        }
-
         lastTouch = Calendar.getInstance().getTimeInMillis();
 
         // Initialize Survey

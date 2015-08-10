@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:id="@+id/linearLayout">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="@string/enter_email"
+        android:id="@+id/emailTxt"
+        android:layout_margin="5dp"
+        android:background="#ff000000"
+        android:textColor="#ffffffff"
+        android:padding="5dp" />
+
+    <EditText
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="textEmailAddress"
+        android:ems="10"
+        android:id="@+id/emailEditTxt"
+        android:layout_margin="10dp"
+        android:hint="@string/example_email" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="@string/choose_language"
+        android:id="@+id/languageTxt"
+        android:layout_margin="5dp"
+        android:textColor="#ffffffff"
+        android:background="#ff000000"
+        android:padding="5dp" />
+
+    <Spinner
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/languageSpinner"
+        android:layout_gravity="center_horizontal"
+        android:layout_margin="10dp"
+        android:entries="@array/spinner_entries"
+        android:spinnerMode="dropdown" />
+
+</LinearLayout>

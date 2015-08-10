@@ -1,5 +1,6 @@
 package com.example.natalie.android_wellbeing;
 
+import android.app.DialogFragment;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
@@ -63,7 +64,7 @@ public class FinishScreen extends Activity {
         quesCt  = ans.size();
 
         // Display user's progress on the survey
-        progressTxt.setText(ans_ct + "/" + quesCt + " Questions Answered");
+        progressTxt.setText(ans_ct + "/" + quesCt + getString(R.string.progress));
 
         // Listen for when the submit button is clicked
         submitBttn.setOnClickListener(new View.OnClickListener() {
@@ -75,44 +76,49 @@ public class FinishScreen extends Activity {
                     // Check that the app has an email for the user
                     final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
                     boolean emailStored = prefs.getBoolean(getString(R.string.emailStored), false);
+                    boolean languageStored = prefs.getBoolean(getString(R.string.languageStored), false);
 
-                    if(!emailStored) {
-                        Intent intent = new Intent(FinishScreen.this, EmailDialog.class);
-                        startActivity(intent);
+                    if(!emailStored || !languageStored) {
+                        DialogFragment newFragment = new PreferenceDialog();
+                        newFragment.setCancelable(false);
+                        newFragment.show(getFragmentManager(), "preferences");
                     }
 
                     ConnectivityManager connManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-                    NetworkInfo mWifi = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+                    NetworkInfo wifi = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+                    NetworkInfo mobile = connManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
 
-                    if (!mWifi.isConnected()) {
-                        Toast.makeText(getApplicationContext(),
-                                "You have no WiFi! Could not submit survey.Your answers have been saved.",
-                                Toast.LENGTH_SHORT).show();
 
-                        //Return to the home screen
-                        Intent intent = new Intent(FinishScreen.this, StartScreen.class);
-                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                        startActivity(intent);
-                    }
-                    else{
+                    if (wifi != null && wifi.isConnected() || mobile != null && mobile.isConnected()){
                         // Notify the user that the survey is submitted
                         Toast.makeText(getApplicationContext(), "The survey has been submitted.", Toast.LENGTH_SHORT).show();
 
                         // Submit survey to parse website
-                        sendToParse();
-
-                        // Set survey to completed
-                        dbHandler.setComplete(true, id);
-
-                        // Clear answer and timestamp lists
-                        dbHandler.storeAnswers("empty", id);
-                        dbHandler.storeTStamps("empty", id);
-
-                        // Return to home screen
-                        Intent intent = new Intent(FinishScreen.this, StartScreen.class);
-                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                        startActivity(intent);
+                        sendToParse(true);
                     }
+                    else {
+                        Toast.makeText(getApplicationContext(),
+                                "You have no connectivity! Survey will be submitted when service is available.",
+                                Toast.LENGTH_SHORT).show();
+
+                        // Submit survey to parse website when network is available
+                        sendToParse(false);
+                    }
+
+                    // Set survey to completed
+                    List<Integer> days = dbHandler.getDays(id);
+                    if(days.get(0) != -1) {
+                        dbHandler.setComplete(true, id);
+                    }
+
+                    // Clear answer and timestamp lists
+                    dbHandler.storeAnswers("empty", id);
+                    dbHandler.storeTStamps("empty", id);
+
+                    // Return to home screen
+                    Intent intent = new Intent(FinishScreen.this, StartScreen.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                    startActivity(intent);
                 }
                 else{
                     // Notify the user that the survey is no longer active
@@ -201,7 +207,7 @@ public class FinishScreen extends Activity {
     }
 
 
-    public void sendToParse() {
+    public void sendToParse(boolean connectivity) {
         /**
          * Sends all the survey data and results to be stored in Parse
         **/
@@ -217,7 +223,7 @@ public class FinishScreen extends Activity {
         // For all questions in the survey...
         for(int i = 0; i < quesCt; i++) {
             List<String> ans_array = new ArrayList<>();
-            ParseObject ques = new ParseObject("SurveyResponses");
+            ParseObject ques = new ParseObject("RIC");
 
             ques.put("appID", app_version);              // add the app version ID to the response table
             ques.put("userEmail", email);                // add the user's email to the response table
@@ -239,7 +245,12 @@ public class FinishScreen extends Activity {
             ques.put("unixTimeStamp", tstamp.get(i));   // add timestamp for current question to the response table
 
             // Push to Parse in the background
-            ques.saveInBackground();
+            if(connectivity){
+                ques.saveInBackground();
+            }
+            else {
+                ques.saveEventually();
+            }
 
             // Parse can only handle 30 requests at a time, so wait 0.5 s every 25 saves
             if(i%25 == 0){

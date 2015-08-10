@@ -13,9 +13,11 @@ import android.util.Log;
 
 import com.parse.FindCallback;
 import com.parse.Parse;
+import com.parse.ParseACL;
 import com.parse.ParseException;
 import com.parse.ParseObject;
 import com.parse.ParseQuery;
+import com.parse.ParseUser;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -39,7 +41,10 @@ public class WellBeing extends Application {
 
         // Initialize Parse
         Parse.enableLocalDatastore(this);
-
+        ParseObject.registerSubclass(SurveyResponseBundle.class);
+        ParseUser.enableAutomaticUser();
+        ParseACL defaultACL = new ParseACL();
+        ParseACL.setDefaultACL(defaultACL, true);
         Parse.initialize(this, "wFcqaTXYYCeNqKJ8wswlwtXChEzJyFyBV7N5JOZX", "MomzqWhPQSVPNZ6hNjXtSSs6Lah5OMQCE8p4amsW");
                 /*"Z6S6iux9qyLGcCsAE3vuRvhHWDwFelxzT2nSqKWc",
                 "boXMTOaotk2HgGpxFLdNNPFw1d7WwB7c3G4nPHak");*/
@@ -119,19 +124,35 @@ public class WellBeing extends Application {
                                     String ansVal_str = Utilities.join(ansVals, "`nxt`");
                                     String endPts_str = Utilities.join(endpts, "`nxt`");
 
-                                    // Store new survey in SQLite database
-                                    dbHandler.createSurvey(
-                                            Utilities.join(times, ","),
-                                            duration,
-                                            name,
-                                            ques_str,
-                                            ans_str,
-                                            type_str,
-                                            ansVal_str,
-                                            surveyVersion,
-                                            Utilities.join(days, ","),
-                                            endPts_str
-                                    );
+                                    if(days.get(0) != 11) {
+                                        // Store new survey in SQLite database
+                                        dbHandler.createSurvey(
+                                                Utilities.join(times, ","),
+                                                duration,
+                                                name,
+                                                ques_str,
+                                                ans_str,
+                                                type_str,
+                                                ansVal_str,
+                                                surveyVersion,
+                                                Utilities.join(days, ","),
+                                                endPts_str
+                                        );
+                                    }
+                                    else {
+                                        dbHandler.createSurvey(
+                                                "-1",
+                                                duration,
+                                                name,
+                                                ques_str,
+                                                ans_str,
+                                                type_str,
+                                                ansVal_str,
+                                                surveyVersion,
+                                                "-1",
+                                                endPts_str
+                                        );
+                                    }
 
                                     Log.i("DEBUG>>", "Version # = " + String.valueOf(surveyVersion));
 
@@ -147,6 +168,8 @@ public class WellBeing extends Application {
                                     // For every active day...
                                     for(int d = 0; d < dayCt; d++) {
                                         int currDay = Integer.parseInt(String.valueOf(days.get(d))) + 1; // days are given 0-6, android uses 1-7
+
+                                        if(currDay == 0) break; // 24-hr survey
 
                                         // ...set an alarm for all survey times
                                         for(int j = 0; j < timeCt; j++) {
@@ -210,8 +233,6 @@ public class WellBeing extends Application {
                                                 }
                                             }
 
-                                            Log.i("TIME>>>", "Primary Alarm for " + String.valueOf(survey_id) + " = " + cal.getTime().toString());
-
                                             String partID = String.valueOf(d) + String.valueOf(survey_id) + String.valueOf(j);
                                             int intentID  = Integer.parseInt(partID + "1");
 
@@ -250,9 +271,5 @@ public class WellBeing extends Application {
                 }
             });
         }
-    }
-
-    static public Context getWellbeingContext(){
-        return appContext;
     }
 }

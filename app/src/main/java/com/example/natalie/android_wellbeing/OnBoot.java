@@ -46,6 +46,8 @@ public class OnBoot extends BroadcastReceiver {
                 // The current day; days are give 0-6, android uses 1-7
                 int currDay = Integer.parseInt(String.valueOf(days.get(d))) + 1;
 
+                if (currDay == 0) break; // 24-hr survey
+
                 // Set first alarm for all survey times
                 for(int j = 0; j < timeCt; j++) {
                     int hr  = Integer.parseInt(String.valueOf(times.get(j)).split(":")[0]); // start time hour

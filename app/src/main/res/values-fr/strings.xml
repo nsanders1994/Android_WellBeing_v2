@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Well-Being</string>
+    <string name="title_activity_start_screen">Well-Being</string>
+    <string name="action_settings">Paramètres</string>
+    <string name="title_activity_survey">Well-Being Enquête</string>
+    <string name="title_activity_user_dialog">Well-Being</string>
+    <string name="title_activity_finish_screen">Enquête Terminé</string>
+    <string name="next">Suivant</string>
+    <string name="back">Retour</string>
+    <string name="submit">Soumettre</string>
+    <string name="okay">OK</string>
+    <string name="progress"> des Questions Terminée</string>
+    <string name="survey_name">Enquête</string>
+    <string name="survey_time">Temps</string>
+    <string name="finish">Merci pour vos réponses</string>
+    <string name="prev_started">previously_started</string>
+    <string name="enter_email">Adresse Email:</string>
+    <string name="choose_language">Preferred Language:</string>
+    <string name="user_email">user_email</string>
+    <string name="user_language">user_language</string>
+    <string name="emailStored">emailStored</string>
+    <string name="languageStored">languagedStored</string>
+    <string name="app_version">ND-WB-SAV-2015-06-28</string>
+    <string name="importCt">0</string>
+    <string name="notificationIDs">NA</string>
+    <string name="example_email">janedoe@gmail.com</string>
+    <string name="mon">L</string>
+    <string name="tue">Ma</string>
+    <string name="wed">Me</string>
+    <string name="thu">J</string>
+    <string name="fri">V</string>
+    <string name="sat">S</string>
+    <string name="sun">D</string>
+    <string name="all_day">24/7</string>
+    <string-array name="spinner_entries">
+        <item>English</item>
+        <item>Español</item>
+        <item>Français</item>
+    </string-array>
+</resources>

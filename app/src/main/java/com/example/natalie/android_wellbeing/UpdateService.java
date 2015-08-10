@@ -8,10 +8,12 @@ import android.app.IntentService;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.ResultReceiver;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import com.parse.FindCallback;
 import com.parse.ParseException;
@@ -68,8 +70,27 @@ public class UpdateService extends IntentService {
         Log.i("DEBUG>>>", "Parse Query Starting");
         if(!from_boot) receiver.send(STATUS_RUNNING, Bundle.EMPTY);
 
+        // Determine Survey Table
+        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+        String language = prefs.getString(getString(R.string.user_language), "English");
+
+        String table = "SurveySummary";
+        switch (language) {
+            case "Français":
+                table = "French";
+                break;
+            case "Español":
+                table = "Spanish";
+                break;
+            case "English":
+                table = "SurveySummary";
+                break;
+            default:
+                table = "SurveySummary";
+        }
+
         // Import all active surveys from Parse
-        final ParseQuery<ParseObject> query = new ParseQuery<>("SurveySummary");
+        final ParseQuery<ParseObject> query = new ParseQuery<>(table);
         query.whereEqualTo("Active", true);
         query.findInBackground(new FindCallback<ParseObject>() {
             public void done(List<ParseObject> all_surveys, ParseException e) {
@@ -135,19 +156,35 @@ public class UpdateService extends IntentService {
                                     String ansVal_str = Utilities.join(ansVals, "`nxt`");
                                     String endPts_str = Utilities.join(endpts, "`nxt`");
 
-                                    // Store Survey
-                                    dbHandler.createSurvey(
-                                            Utilities.join(times, ","),
-                                            duration,
-                                            name,
-                                            ques_str,
-                                            ans_str,
-                                            type_str,
-                                            ansVal_str,
-                                            surveyVersion,
-                                            Utilities.join(days, ","),
-                                            endPts_str
-                                    );
+                                    if(days.get(0) != 11) {
+                                        // Store new survey in SQLite database
+                                        dbHandler.createSurvey(
+                                                Utilities.join(times, ","),
+                                                duration,
+                                                name,
+                                                ques_str,
+                                                ans_str,
+                                                type_str,
+                                                ansVal_str,
+                                                surveyVersion,
+                                                Utilities.join(days, ","),
+                                                endPts_str
+                                        );
+                                    }
+                                    else {
+                                        dbHandler.createSurvey(
+                                                "-1",
+                                                duration,
+                                                name,
+                                                ques_str,
+                                                ans_str,
+                                                type_str,
+                                                ansVal_str,
+                                                surveyVersion,
+                                                "-1",
+                                                endPts_str
+                                        );
+                                    }
 
                                     // Get current survey's ID in the database
                                     int survey_id = dbHandler.getLastRowID();
@@ -160,6 +197,8 @@ public class UpdateService extends IntentService {
                                     // Set Alarms for all days
                                     for (int d = 0; d < dayCt; d++) {
                                         int currDay = Integer.parseInt(String.valueOf(days.get(d))) + 1; // days are give 0-6, android uses 1-7
+
+                                        if (currDay == 0) break; //24-hr survey
 
                                         // Set first alarm of each active period for all survey times
                                         for (int j = 0; j < timeCt; j++) {
